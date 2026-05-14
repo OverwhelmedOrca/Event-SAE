@@ -60,6 +60,14 @@ class _ActivationShardDataset(IterableDataset):
             local_shards = list(self.shard_paths)
         else:
             local_shards = list(self.shard_paths[worker.id :: worker.num_workers])
+        # Skip shards that cannot yield a full batch: they waste I/O and,
+        # if a worker is assigned ONLY such shards, would cause the
+        # DataLoader's round-robin to wait forever. File-size heuristic:
+        # rows ≈ shard_size / (activation_dim * 4 bytes-per-float32).
+        threshold_bytes = self.cfg.batch_size * self.cfg.activation_dim * 4
+        local_shards = [s for s in local_shards if s.stat().st_size >= threshold_bytes]
+        if not local_shards:
+            return  # worker has nothing to yield; exit cleanly
         while True:
             if len(local_shards) > 1:
                 order = torch.randperm(len(local_shards)).tolist()
@@ -94,14 +102,27 @@ class ActivationShardDataLoader:
             )
         self.shard_paths = shard_paths
         self._dataset = _ActivationShardDataset(cfg, shard_paths)
+        # Clamp num_workers to the number of shards that can yield a full
+        # batch. A worker assigned only "too small" shards yields nothing
+        # and stalls the DataLoader's round-robin. File-size heuristic:
+        # rows ≈ shard_size / (activation_dim * 4 bytes-per-float32).
+        threshold_bytes = cfg.batch_size * cfg.activation_dim * 4
+        viable_count = sum(1 for p in shard_paths if p.stat().st_size >= threshold_bytes)
+        if viable_count == 0:
+            raise RuntimeError(
+                f"No shard in {cfg.data_dir} has >= {cfg.batch_size} rows "
+                f"(activation_dim={cfg.activation_dim}). Reduce batch_size, or "
+                f"recollect more activations."
+            )
+        num_workers = min(cfg.num_workers, viable_count)
         dataloader_kwargs: dict[str, Any] = {
             "dataset": self._dataset,
             "batch_size": None,
-            "num_workers": cfg.num_workers,
+            "num_workers": num_workers,
             "pin_memory": cfg.pin_memory and self.device.startswith("cuda"),
-            "persistent_workers": cfg.num_workers > 0,
+            "persistent_workers": num_workers > 0,
         }
-        if cfg.num_workers > 0:
+        if num_workers > 0:
             dataloader_kwargs["prefetch_factor"] = cfg.prefetch_factor
         self._dataloader = DataLoader(**dataloader_kwargs)
 

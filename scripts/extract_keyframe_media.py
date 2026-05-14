@@ -16,7 +16,11 @@ from event_sae.events.extract_media import extract_keyframe_media
 
 def _default_output_dir(waypoint_summary_path: Path) -> Path:
     run_name = waypoint_summary_path.parent.parent.name
-    return Path("logs") / "openvla" / "events" / run_name / "samples_5frames_stride2"
+    # Pick the backend bucket from the source path so OpenPI runs land
+    # under logs/openpi/events/ rather than logs/openvla/.
+    parts = waypoint_summary_path.resolve().parts
+    backend = next((p for p in parts if p in {"openvla", "openpi"}), "openvla")
+    return Path("logs") / backend / "events" / run_name / "samples_5frames_stride2"
 
 
 def main() -> None:

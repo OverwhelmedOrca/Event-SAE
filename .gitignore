@@ -20,6 +20,10 @@ tools/
 
 # Staging dir for HF Hub upload of SAE checkpoints
 event-sae-openvla-libero/
+event-sae-openpi-libero/
+
+# Runtime-generated LIBERO config (written by event_sae.openpi.eval.libero_utils.prepare_libero_env)
+examples/libero/libero_config/config.yaml
 
 # Python
 __pycache__/
@@ -34,6 +38,7 @@ venv/
 .idea/
 .DS_Store
 *.swp
+external/openpi-event-sae/
 *_arxiv/
 *_arXiv/
 *_presentation/

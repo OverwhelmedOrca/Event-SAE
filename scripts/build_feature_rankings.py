@@ -40,11 +40,6 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Build the 4 feature-ranking candidate lists.")
     ap.add_argument("--scores-pt", required=True, help="Path to event_feature_scores.pt from step (i).")
     ap.add_argument("--topk-run-dir", required=True, help="Directory with token_topk_sparse_v1 manifest + shards.")
-    ap.add_argument(
-        "--prompt-records-path",
-        required=True,
-        help="Path to prompt_records.jsonl from the EVAL run that produced topk shards.",
-    )
     ap.add_argument("--output-dir", required=True, help="Where to write the JSONL outputs.")
     ap.add_argument(
         "--top-k",
@@ -60,6 +55,17 @@ def main() -> None:
     )
     ap.add_argument("--action-dim", type=int, default=7)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--min-coverage",
+        type=float,
+        default=0.5,
+        help=(
+            "Canonical-row filter: include only score-matrix rows with "
+            "episode_coverage >= this threshold in suite-level aggregation "
+            "for event_aligned and window_mean. Matches mechanistic-steering-vlas "
+            "filter_and_visualize_cluster_matrix.py default. Default: 0.5."
+        ),
+    )
     args = ap.parse_args()
 
     output_dir = Path(args.output_dir).resolve()
@@ -67,36 +73,37 @@ def main() -> None:
 
     print("[1/4] event_aligned …", flush=True)
     ea_rows = event_aligned_top_features_per_row(Path(args.scores_pt), args.top_n_per_row)
-    ea_suite = event_aligned_suite_top_k(Path(args.scores_pt), args.top_k)
+    ea_suite = event_aligned_suite_top_k(
+        Path(args.scores_pt), args.top_k, min_coverage=args.min_coverage
+    )
     _write_jsonl(output_dir / "event_aligned.jsonl", ea_rows)
 
     print("[2/4] window_mean …", flush=True)
+    # window_mean / task_mean now read pre-computed matrices from the
+    # score artifact (matrix_window_mean / matrix_task_mean). The
+    # `topk_run_dir` / `prompt_records_path` / `action_dim` args are
+    # threaded through for backward compat with the legacy "iterate
+    # shards at ranking time" code path, but are not consumed.
     wm_rows = window_mean_top_features_per_row(
         scores_pt_path=Path(args.scores_pt),
-        topk_run_dir=Path(args.topk_run_dir),
         top_n=args.top_n_per_row,
-        action_dim=args.action_dim,
     )
     wm_suite = window_mean_suite_top_k(
         scores_pt_path=Path(args.scores_pt),
-        topk_run_dir=Path(args.topk_run_dir),
         top_k=args.top_k,
-        action_dim=args.action_dim,
+        min_coverage=args.min_coverage,
     )
     _write_jsonl(output_dir / "window_mean.jsonl", wm_rows)
 
     print("[3/4] task_mean …", flush=True)
     tm_rows = task_mean_top_features_per_task(
-        topk_run_dir=Path(args.topk_run_dir),
-        prompt_records_path=Path(args.prompt_records_path),
+        scores_pt_path=Path(args.scores_pt),
         top_n=args.top_n_per_row,
-        action_dim=args.action_dim,
     )
     tm_suite = task_mean_suite_top_k(
-        topk_run_dir=Path(args.topk_run_dir),
-        prompt_records_path=Path(args.prompt_records_path),
+        scores_pt_path=Path(args.scores_pt),
         top_k=args.top_k,
-        action_dim=args.action_dim,
+        min_coverage=args.min_coverage,
     )
     _write_jsonl(output_dir / "task_mean.jsonl", tm_rows)
 

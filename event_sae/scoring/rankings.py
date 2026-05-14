@@ -16,7 +16,6 @@ Implements the rankings compared in paper Section 4.4:
 from __future__ import annotations
 
 import random
-from collections import defaultdict
 from pathlib import Path
 
 import torch
@@ -26,7 +25,6 @@ try:
 except ImportError:  # pragma: no cover
     tqdm = None
 
-from event_sae.events.io import load_jsonl
 
 
 # ---------------------------------------------------------------------------
@@ -62,56 +60,6 @@ def _top_pairs(vec: torch.Tensor, top_n: int) -> list[dict]:
     return [{"feature_id": int(i), "score": float(v)} for i, v in zip(indices.tolist(), values.tolist())]
 
 
-# ---------------------------------------------------------------------------
-# Per-step action-token aggregator
-# ---------------------------------------------------------------------------
-
-
-def _build_step_vectors(
-    topk_run_dir: Path,
-    *,
-    dict_size: int,
-    action_dim: int,
-    desc: str,
-):
-    """Yield (episode_num, step_in_episode, step_vector[dict_size]) tuples.
-
-    Each step vector is the per-step mean of the last sparse top-k row across
-    the first ``action_dim`` forwards at that step. Forwards are deduplicated
-    by ``global_forward_idx``, keeping the highest ``token_idx`` row (the
-    action token).
-    """
-    manifest = _load_manifest(topk_run_dir)
-
-    last_token_row: dict[tuple[int, int], dict[int, dict]] = defaultdict(dict)
-    for payload in _iter_shards(topk_run_dir, manifest, desc=desc):
-        episode_num = payload["episode_num"].to(dtype=torch.int64)
-        step_in_episode = payload["step_in_episode"].to(dtype=torch.int64)
-        global_forward_idx = payload["global_forward_idx"].to(dtype=torch.int64)
-        token_idx = payload["token_idx"].to(dtype=torch.int64)
-        top_feature_ids = payload["top_feature_ids"].to(dtype=torch.int64)
-        top_feature_vals = payload["top_feature_vals"].to(dtype=torch.float32)
-        for row_idx in range(int(episode_num.shape[0])):
-            ep, st = int(episode_num[row_idx]), int(step_in_episode[row_idx])
-            fwd = int(global_forward_idx[row_idx])
-            tok = int(token_idx[row_idx])
-            current = last_token_row[(ep, st)].get(fwd)
-            if current is None or tok > current["token_idx"]:
-                last_token_row[(ep, st)][fwd] = {
-                    "token_idx": tok,
-                    "top_feature_ids": top_feature_ids[row_idx].clone(),
-                    "top_feature_vals": top_feature_vals[row_idx].clone(),
-                }
-
-    for (ep, st), forwards in last_token_row.items():
-        if len(forwards) < action_dim:
-            continue
-        step_vector = torch.zeros(dict_size, dtype=torch.float32)
-        for fwd in sorted(forwards)[:action_dim]:
-            row = forwards[fwd]
-            step_vector.index_add_(0, row["top_feature_ids"], row["top_feature_vals"])
-        step_vector /= float(action_dim)
-        yield ep, st, step_vector
 
 
 # ---------------------------------------------------------------------------
@@ -119,9 +67,23 @@ def _build_step_vectors(
 # ---------------------------------------------------------------------------
 
 
-def _load_event_aligned_matrix(scores_pt_path: Path) -> tuple[torch.Tensor, list[dict]]:
+def _load_matrix(scores_pt_path: Path, key: str) -> tuple[torch.Tensor, list[dict]]:
+    """Load a named matrix + row_keys from a score artifact. Accepts both
+    the OpenPI-style payload with `matrix_raw / matrix_window_mean /
+    matrix_task_mean` and the legacy single-`matrix` payload."""
     payload = torch.load(Path(scores_pt_path).resolve(), map_location="cpu")
-    return payload["matrix"].to(dtype=torch.float32), list(payload["row_keys"])
+    if key in payload:
+        return payload[key].to(dtype=torch.float32), list(payload["row_keys"])
+    # Legacy: only `matrix` (= event_aligned matrix_raw). Used to be called
+    # `matrix` before the openpi-mech refactor; remap the three keys to the
+    # legacy single matrix so downstream still works on old artifacts.
+    if "matrix" in payload:
+        return payload["matrix"].to(dtype=torch.float32), list(payload["row_keys"])
+    raise KeyError(f"Score artifact missing '{key}' (and no legacy 'matrix'): {scores_pt_path}")
+
+
+def _load_event_aligned_matrix(scores_pt_path: Path) -> tuple[torch.Tensor, list[dict]]:
+    return _load_matrix(scores_pt_path, "matrix_raw")
 
 
 def event_aligned_top_features_per_row(scores_pt_path: Path, top_n: int) -> list[dict]:
@@ -143,77 +105,39 @@ def event_aligned_top_features_per_row(scores_pt_path: Path, top_n: int) -> list
     return out
 
 
-def event_aligned_suite_top_k(scores_pt_path: Path, top_k: int) -> list[dict]:
+def event_aligned_suite_top_k(
+    scores_pt_path: Path, top_k: int, *, min_coverage: float = 0.5
+) -> list[dict]:
     """Suite-level top-K event-aligned features: mean of the score matrix
-    over rows, then top-K. Matches paper Section 5.3 aggregation."""
-    matrix, _ = _load_event_aligned_matrix(scores_pt_path)
-    suite_vec = matrix.mean(dim=0)
+    over **canonical** rows (``episode_coverage >= min_coverage``), then
+    top-K. Matches mechanistic-steering-vlas suite-config generator,
+    which averages over the canonical-filtered matrix (default
+    ``min_coverage=0.5``)."""
+    matrix, row_keys = _load_event_aligned_matrix(scores_pt_path)
+    keep_idx = [
+        i
+        for i, row in enumerate(row_keys)
+        if float(row.get("episode_coverage", 0.0)) >= min_coverage
+    ]
+    if not keep_idx:
+        raise RuntimeError(
+            f"No canonical rows with episode_coverage >= {min_coverage}; "
+            f"total rows={len(row_keys)}."
+        )
+    suite_vec = matrix[keep_idx].mean(dim=0)
     return _top_pairs(suite_vec, top_k)
-
-
-def _compute_window_mean_matrix(
-    *,
-    scores_pt_path: Path,
-    topk_run_dir: Path,
-    action_dim: int,
-) -> tuple[torch.Tensor, list[dict], list[int]]:
-    """Returns (matrix [num_rows, dict_size], row_keys, num_events_per_row).
-
-    Reuses the same ``selected_events`` and ``row_keys`` saved in the score
-    payload, so the events used here are identical to event-aligned —
-    only the temporal weighting (template projection vs. flat mean) differs.
-    """
-    scores_pt_path = Path(scores_pt_path).resolve()
-    topk_run_dir = Path(topk_run_dir).resolve()
-    payload = torch.load(scores_pt_path, map_location="cpu")
-    row_keys: list[dict] = list(payload["row_keys"])
-    selected_events: list[dict] = list(payload["selected_events"])
-    dict_size = int(payload["source"]["dict_size"])
-
-    cluster_ids = [str(row["cluster_id"]) for row in row_keys]
-    cluster_index = {cid: i for i, cid in enumerate(cluster_ids)}
-
-    needed_steps: dict[tuple[int, int], list[int]] = defaultdict(list)
-    for event in selected_events:
-        idx = cluster_index.get(str(event["cluster_id"]))
-        if idx is None:
-            continue
-        ep = int(event["episode_num"])
-        for step in event["window_steps"]:
-            needed_steps[(ep, int(step))].append(idx)
-    if not needed_steps:
-        raise RuntimeError("No event-window steps found in scores payload.")
-
-    matrix = torch.zeros((len(cluster_ids), dict_size), dtype=torch.float32)
-    counts = [0] * len(cluster_ids)
-    for ep, st, step_vector in _build_step_vectors(
-        topk_run_dir, dict_size=dict_size, action_dim=action_dim, desc="window-mean shards"
-    ):
-        rows_here = needed_steps.get((ep, st))
-        if not rows_here:
-            continue
-        for idx in rows_here:
-            matrix[idx] += step_vector
-            counts[idx] += 1
-    for idx, c in enumerate(counts):
-        if c > 0:
-            matrix[idx] /= float(c)
-    num_events_per_row = [int(row.get("num_events", 0)) for row in row_keys]
-    return matrix, row_keys, num_events_per_row
 
 
 def window_mean_top_features_per_row(
     *,
     scores_pt_path: Path,
-    topk_run_dir: Path,
     top_n: int,
-    action_dim: int = 7,
 ) -> list[dict]:
     """Per cluster row, top-N features by mean SAE activation over the
-    cluster's event windows. No temporal templating."""
-    matrix, row_keys, _ = _compute_window_mean_matrix(
-        scores_pt_path=scores_pt_path, topk_run_dir=topk_run_dir, action_dim=action_dim
-    )
+    cluster's event windows. Reads the pre-computed ``matrix_window_mean``
+    from the score artifact (built by
+    ``event_sae.scoring.score_matrix.score_cluster_features``)."""
+    matrix, row_keys = _load_matrix(scores_pt_path, "matrix_window_mean")
     out: list[dict] = []
     for row_idx, meta in enumerate(row_keys):
         if float(matrix[row_idx].abs().sum().item()) == 0.0:
@@ -234,81 +158,59 @@ def window_mean_top_features_per_row(
 def window_mean_suite_top_k(
     *,
     scores_pt_path: Path,
-    topk_run_dir: Path,
     top_k: int,
-    action_dim: int = 7,
+    min_coverage: float = 0.5,
 ) -> list[dict]:
-    """Suite-level top-K window-mean features: weighted mean of per-row
-    window-mean vectors by ``num_events`` per row, then top-K."""
-    matrix, _row_keys, num_events_per_row = _compute_window_mean_matrix(
-        scores_pt_path=scores_pt_path, topk_run_dir=topk_run_dir, action_dim=action_dim
+    """Suite-level top-K window-mean features: ``num_events``-weighted
+    mean of per-row pre-computed ``matrix_window_mean`` vectors,
+    restricted to canonical rows (``episode_coverage >= min_coverage``),
+    then top-K."""
+    matrix, row_keys = _load_matrix(scores_pt_path, "matrix_window_mean")
+    keep_idx = [
+        i
+        for i, row in enumerate(row_keys)
+        if float(row.get("episode_coverage", 0.0)) >= min_coverage
+    ]
+    if not keep_idx:
+        raise RuntimeError(
+            f"No canonical rows with episode_coverage >= {min_coverage}; "
+            f"total rows={len(row_keys)}."
+        )
+    matrix = matrix[keep_idx]
+    num_events_per_row = [int(row.get("num_events", 0)) for row in row_keys]
+    weights = torch.tensor(
+        [float(num_events_per_row[i]) for i in keep_idx], dtype=torch.float32
     )
-    weights = torch.tensor([float(n) for n in num_events_per_row], dtype=torch.float32)
     if float(weights.sum().item()) <= 0:
         raise RuntimeError("Total event-weight is zero for window-mean aggregation.")
     suite_vec = (matrix * weights[:, None]).sum(dim=0) / weights.sum()
     return _top_pairs(suite_vec, top_k)
 
 
-def _compute_task_mean_matrix(
-    *,
-    topk_run_dir: Path,
-    prompt_records_path: Path,
-    action_dim: int,
-) -> tuple[torch.Tensor, list[str], list[int]]:
-    """Returns (matrix [num_tasks, dict_size], task_descriptions_sorted,
-    step_counts_per_task)."""
-    topk_run_dir = Path(topk_run_dir).resolve()
-    prompt_records_path = Path(prompt_records_path).resolve()
-    manifest = _load_manifest(topk_run_dir)
-    dict_size = int(manifest["dict_size"])
-
-    episode_to_task: dict[int, str] = {}
-    for record in load_jsonl(prompt_records_path):
-        episode_to_task[int(record["episode_num"])] = str(record["task_description"])
-    if not episode_to_task:
-        raise ValueError(f"prompt_records is empty: {prompt_records_path}")
-
-    task_sums: dict[str, torch.Tensor] = defaultdict(lambda: torch.zeros(dict_size, dtype=torch.float32))
-    task_counts: dict[str, int] = defaultdict(int)
-    for ep, _st, step_vector in _build_step_vectors(
-        topk_run_dir, dict_size=dict_size, action_dim=action_dim, desc="task-mean shards"
-    ):
-        task = episode_to_task.get(ep)
-        if task is None:
-            continue
-        task_sums[task] += step_vector
-        task_counts[task] += 1
-
-    tasks_sorted = sorted(task_sums)
-    matrix = torch.zeros((len(tasks_sorted), dict_size), dtype=torch.float32)
-    counts: list[int] = []
-    for i, task in enumerate(tasks_sorted):
-        matrix[i] = task_sums[task] / float(task_counts[task])
-        counts.append(task_counts[task])
-    return matrix, tasks_sorted, counts
 
 
 def task_mean_top_features_per_task(
     *,
-    topk_run_dir: Path,
-    prompt_records_path: Path,
+    scores_pt_path: Path,
     top_n: int,
-    action_dim: int = 7,
 ) -> list[dict]:
     """Per task, top-N features by mean SAE activation across every rollout
-    step in the run."""
-    matrix, tasks, counts = _compute_task_mean_matrix(
-        topk_run_dir=topk_run_dir, prompt_records_path=prompt_records_path, action_dim=action_dim
-    )
+    step. Reads pre-computed ``matrix_task_mean`` from the score artifact.
+    Note: rows here are per-cluster (each cluster broadcasts its task's
+    mean), so we dedupe by task_description for the per-task ranking."""
+    matrix, row_keys = _load_matrix(scores_pt_path, "matrix_task_mean")
+    seen: dict[str, int] = {}
+    for i, meta in enumerate(row_keys):
+        task = str(meta.get("task_description", ""))
+        if task and task not in seen:
+            seen[task] = i
     out: list[dict] = []
-    for i, task in enumerate(tasks):
+    for task, idx in sorted(seen.items()):
         out.append(
             {
                 "ranking": "task_mean",
                 "task_description": task,
-                "num_steps": counts[i],
-                "top_features": _top_pairs(matrix[i], top_n),
+                "top_features": _top_pairs(matrix[idx], top_n),
             }
         )
     return out
@@ -316,20 +218,56 @@ def task_mean_top_features_per_task(
 
 def task_mean_suite_top_k(
     *,
-    topk_run_dir: Path,
-    prompt_records_path: Path,
+    scores_pt_path: Path,
     top_k: int,
-    action_dim: int = 7,
+    min_coverage: float = 0.5,
 ) -> list[dict]:
-    """Suite-level top-K task-mean features: weighted mean of per-task
-    means by per-task step count, then top-K."""
-    matrix, _tasks, counts = _compute_task_mean_matrix(
-        topk_run_dir=topk_run_dir, prompt_records_path=prompt_records_path, action_dim=action_dim
+    """Suite-level top-K task-mean features. Mirrors openpi-mech's
+    ``_task_mean_suite_vector``: dedupe canonical cluster rows by
+    ``task_description``, then take a per-task-timestep-count-weighted
+    mean across unique tasks."""
+    payload = torch.load(Path(scores_pt_path).resolve(), map_location="cpu")
+    matrix = payload.get("matrix_task_mean")
+    if matrix is None:
+        matrix = payload["matrix"]
+    matrix = matrix.to(dtype=torch.float32)
+    row_keys = list(payload["row_keys"])
+    keep_idx = [
+        i
+        for i, row in enumerate(row_keys)
+        if float(row.get("episode_coverage", 0.0)) >= min_coverage
+    ]
+    if not keep_idx:
+        raise RuntimeError(
+            f"No canonical rows with episode_coverage >= {min_coverage}; "
+            f"total rows={len(row_keys)}."
+        )
+    task_timestep_counts = (
+        payload.get("selection_counts", {}).get("task_timestep_counts", {}) or {}
     )
-    weights = torch.tensor([float(c) for c in counts], dtype=torch.float32)
-    if float(weights.sum().item()) <= 0:
-        raise RuntimeError("Total task-step weight is zero for task-mean aggregation.")
-    suite_vec = (matrix * weights[:, None]).sum(dim=0) / weights.sum()
+
+    seen_tasks: set[str] = set()
+    vectors: list[torch.Tensor] = []
+    weights: list[float] = []
+    for i in keep_idx:
+        meta = row_keys[i]
+        task_desc = str(meta.get("task_description", ""))
+        if task_desc in seen_tasks:
+            continue
+        seen_tasks.add(task_desc)
+        vectors.append(matrix[i])
+        task_id = meta.get("task_id")
+        weight = task_timestep_counts.get(task_id)
+        if weight is None and task_id is not None:
+            weight = task_timestep_counts.get(str(task_id))
+        weights.append(float(weight) if weight else 1.0)
+    if not vectors:
+        raise RuntimeError("No tasks remained for task_mean suite aggregation.")
+    stacked = torch.stack(vectors, dim=0)
+    weight_t = torch.tensor(weights, dtype=torch.float32)
+    if float(weight_t.sum().item()) <= 0:
+        raise RuntimeError("Total task-timestep weight is zero for task_mean.")
+    suite_vec = (stacked * weight_t[:, None]).sum(dim=0) / weight_t.sum()
     return _top_pairs(suite_vec, top_k)
 
 

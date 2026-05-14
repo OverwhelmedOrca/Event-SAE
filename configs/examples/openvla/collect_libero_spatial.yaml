@@ -17,7 +17,7 @@ logging:
   save_video: true              # rollout MP4s (visual sanity check)
   save_actions: true            # per-episode action traces (JSON)
   save_prompt_records: true     # task description + prompt per episode (JSONL)
-  save_trajectory_records: true # eef pose / gripper per step (JSONL) — needed by Phase G AWE keyframe extraction
+  save_trajectory_records: true # eef pose / gripper per step (JSONL) — needed for AWE keyframe extraction
 
 sae_collect:
   enabled: true

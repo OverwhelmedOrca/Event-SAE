@@ -28,14 +28,29 @@ def main() -> None:
     parser.add_argument("--event-features-path", required=True, help="Path to event_features.jsonl")
     parser.add_argument("--cluster-assignments-path", required=True, help="Path to cluster_assignments.jsonl")
     parser.add_argument("--cluster-annotations-path", required=True, help="Path to cluster_annotations.jsonl")
+    parser.add_argument(
+        "--prompt-records-path",
+        default=None,
+        help=(
+            "Path to prompt_records.jsonl from the dense collection run. Used to map every "
+            "episode to its task_id for matrix_task_mean (paper-faithful behavior: per-task "
+            "mean is over all rollout timesteps in the task, not only event-window timesteps). "
+            "If omitted, matrix_task_mean only averages over episodes that produced events."
+        ),
+    )
     parser.add_argument("--output-path", required=True, help="Where to save the score matrix .pt payload")
     parser.add_argument("--window-size", type=int, default=5, help="Half-window size in env steps (default: 5)")
     parser.add_argument("--top-n", type=int, default=20, help="Top-N features to summarize per row (default: 20)")
     parser.add_argument(
-        "--action-dim",
-        type=int,
-        default=7,
-        help="Number of action-token forwards per env step to average (default: 7).",
+        "--step-mapping",
+        choices=("auto", "action_executed", "chunk_executed", "inference_step"),
+        default="auto",
+        help=(
+            "How shard rows map to env timesteps. action_executed uses chunk_start + token_idx "
+            "(OpenPI AE default); chunk_executed broadcasts each row to all executed env steps "
+            "of its chunk (OpenPI PG default); inference_step uses step_in_episode directly "
+            "(OpenVLA legacy). 'auto' picks per manifest.capture_target."
+        ),
     )
     args = parser.parse_args()
 
@@ -47,7 +62,8 @@ def main() -> None:
         output_path=Path(args.output_path),
         window_size=args.window_size,
         top_n=args.top_n,
-        action_dim=args.action_dim,
+        step_mapping=args.step_mapping,
+        prompt_records_path=Path(args.prompt_records_path) if args.prompt_records_path else None,
     )
     print(json.dumps(summary, indent=2))
 

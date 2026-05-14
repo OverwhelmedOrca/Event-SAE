@@ -76,11 +76,24 @@ def load_episode_records(path: Path) -> dict[int, EpisodeRecords]:
 
 
 def find_episode_video(run_dir: Path, episode_num: int) -> Path | None:
+    """Locate a per-episode MP4 in ``<run_dir>/videos/``. Supports two
+    naming conventions:
+
+    * OpenVLA: ``...--episode=<N>--...mp4``
+    * OpenPI:  ``episode_<NNNNN>_task_...mp4`` (zero-padded, written by
+      ``event_sae.openpi.eval.runner``).
+    """
     videos_dir = run_dir / "videos"
     if not videos_dir.is_dir():
         return None
-    matches = sorted(videos_dir.glob(f"*episode={episode_num}--*.mp4"))
-    return matches[0] if matches else None
+    for pattern in (
+        f"*episode={episode_num}--*.mp4",       # OpenVLA
+        f"episode_{episode_num:05d}_*.mp4",     # OpenPI
+    ):
+        matches = sorted(videos_dir.glob(pattern))
+        if matches:
+            return matches[0]
+    return None
 
 
 def fit_frame_window(

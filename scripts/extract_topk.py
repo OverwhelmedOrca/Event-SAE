@@ -1,16 +1,28 @@
 """CLI: offline extract top-k SAE activations from dense shards.
 
+``--dense-dir`` is **the directory that contains ``activation_index.jsonl``**;
+each record's ``shard_path`` is resolved relative to that directory.
+
+Both layouts therefore work without code changes:
+
+* **OpenPI**: pass the eval run root, e.g.
+  ``logs/openpi/sae_collection/<run>/``. Index lives at the root and
+  ``shard_path`` is ``sae_activations/post_mlp_residual/layer_NN_shard_*.pt``.
+* **OpenVLA**: pass the per-target subdir, e.g.
+  ``logs/openvla/<run>/sae_activations/post_mlp_residual/``. Index and
+  shards are siblings inside it.
+
 Reads:
-  - Dense residual shards `{run_dir}/sae_activations/post_mlp_residual/layer_NN_shard_MMMMMM.pt`
-  - Metadata `{run_dir}/sae_activations/post_mlp_residual/activation_index.jsonl`
-  - Trained `BatchTopKSAE` checkpoint (`ae.pt` with sibling `config.json`)
+  - Dense residual shards resolved from ``shard_path`` in the index.
+  - Trained ``BatchTopKSAE`` checkpoint (``ae.pt`` with sibling ``config.json``).
 
-Writes (under `--output-dir`, default `{run_dir}/topk_activations/`):
-  - `shard_NNNNNN.pt` with sparse top-k rows + metadata
-  - `manifest.json` in `token_topk_sparse_v1` format (same as online mode)
+Writes (under ``--output-dir``, default ``{dense_dir}/topk_activations``):
+  - ``shard_NNNNNN.pt`` with sparse top-k rows + metadata
+  - ``manifest.json`` in ``token_topk_sparse_v1`` format (same as online mode)
 
-The output is byte-format-compatible with `event_sae.openvla.activations.apply_sae_topk_collect_hooks`,
-so downstream scoring can consume either online or offline shards uniformly.
+The output is byte-format-compatible with
+``event_sae.openvla.activations.apply_sae_topk_collect_hooks``, so
+downstream scoring can consume either online or offline shards uniformly.
 """
 
 import argparse
@@ -47,7 +59,12 @@ def main() -> None:
     parser.add_argument(
         "--dense-dir",
         required=True,
-        help="Directory containing dense layer_NN_shard_*.pt + activation_index.jsonl.",
+        help=(
+            "Directory that contains activation_index.jsonl; shard paths in the "
+            "index are resolved relative to it. For OpenPI eval runs pass the run "
+            "root (the index sits at the root). For OpenVLA collection runs pass "
+            "the per-target subdir (e.g. sae_activations/post_mlp_residual)."
+        ),
     )
     parser.add_argument("--sae-checkpoint", required=True, help="Path to trained ae.pt")
     parser.add_argument("--layer-idx", type=int, required=True)
@@ -55,7 +72,7 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         default=None,
-        help="Output dir (default: {dense_dir}/../../topk_activations/).",
+        help="Output dir (default: {dense_dir}/topk_activations).",
     )
     parser.add_argument("--device", default=None, help="Torch device (default: cuda if available else cpu).")
     args = parser.parse_args()
@@ -68,7 +85,7 @@ def main() -> None:
     output_dir = (
         Path(args.output_dir).resolve()
         if args.output_dir is not None
-        else (dense_dir.parent.parent / "topk_activations").resolve()
+        else (dense_dir / "topk_activations").resolve()
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -84,6 +101,19 @@ def main() -> None:
     if not index:
         raise RuntimeError(f"No index records found for layer {args.layer_idx} in {index_path}")
 
+    # Probe a record for OpenPI-specific fields. ``capture_target`` and
+    # ``executed_chunk_len`` propagate to the manifest so the scorer can
+    # auto-detect step_mapping (action_executed for AE, chunk_executed for
+    # PG, inference_step for OpenVLA legacy).
+    probe_record = next(iter(index.values()))[0]
+    capture_target = probe_record.get("capture_target")
+    executed_chunk_len_seen = sorted({
+        int(r["executed_chunk_len"])
+        for records in index.values()
+        for r in records
+        if r.get("executed_chunk_len") is not None
+    })
+
     manifest = {
         "format": "token_topk_sparse_v1",
         "layer": args.layer_idx,
@@ -91,6 +121,8 @@ def main() -> None:
         "dict_size": dict_size,
         "activation_dim": activation_dim,
         "topk": args.topk,
+        "capture_target": capture_target,
+        "executed_chunk_lens_seen": executed_chunk_len_seen,
         "num_shards": 0,
         "total_rows": 0,
         "shards": [],
@@ -116,12 +148,33 @@ def main() -> None:
         global_forward_idx = torch.zeros((n_rows,), dtype=torch.int64)
         token_idx = torch.zeros((n_rows,), dtype=torch.int64)
         batch_idx = torch.zeros((n_rows,), dtype=torch.int64)
+        # OpenPI-only: per-row chunk_start_step + executed_chunk_len so
+        # `score_cluster_features` can compute `_effective_steps` under the
+        # chosen step_mapping. OpenVLA records leave these at -1 (sentinel).
+        chunk_start_step = torch.full((n_rows,), -1, dtype=torch.int64)
+        executed_chunk_len = torch.full((n_rows,), -1, dtype=torch.int64)
         for record in records:
             r0, r1 = int(record["row_start"]), int(record["row_end"])
             episode_num[r0:r1] = int(record.get("episode_num") or 0)
-            step_in_episode[r0:r1] = int(record.get("step_in_episode") or 0)
             global_forward_idx[r0:r1] = int(record.get("global_forward_idx") or 0)
-            token_idx[r0:r1] = torch.arange(r1 - r0, dtype=torch.int64)
+            # Per-token env-step mapping. OpenPI records each forward as one
+            # chunked inference covering `seq_len` future tokens; the env step
+            # a token corresponds to is `chunk_start + token_idx`. OpenVLA
+            # records each forward as one env-step (no chunking), and all
+            # rows of a record share the same `step_in_episode`. Matches
+            # openpi-mech's `step_mapping="action_executed"` semantics.
+            tokens_local = torch.arange(r1 - r0, dtype=torch.int64)
+            token_idx[r0:r1] = tokens_local
+            chunk_start = record.get("chunk_start_step")
+            if chunk_start is None:
+                chunk_start = record.get("action_chunk_start_step")
+            if chunk_start is not None:
+                chunk_start_step[r0:r1] = int(chunk_start)
+                step_in_episode[r0:r1] = int(chunk_start) + tokens_local
+            else:
+                step_in_episode[r0:r1] = int(record.get("step_in_episode") or 0)
+            if record.get("executed_chunk_len") is not None:
+                executed_chunk_len[r0:r1] = int(record["executed_chunk_len"])
 
         with torch.no_grad():
             encoded = sae.encode(dense.to(device))
@@ -137,6 +190,8 @@ def main() -> None:
                 "global_forward_idx": global_forward_idx,
                 "batch_idx": batch_idx,
                 "token_idx": token_idx,
+                "chunk_start_step": chunk_start_step,
+                "executed_chunk_len": executed_chunk_len,
                 "top_feature_ids": indices,
                 "top_feature_vals": values,
             },

@@ -1,25 +1,47 @@
 """Event-feature score matrix.
 
 Joins per-event SAE top-k activations (from `event_sae.openvla.activations`
-either online or via `scripts/extract_topk.py`) with VLM-annotated event
-clusters, builds event-centered temporal windows around each event, and
-projects three time templates (pulse, step-up, step-down) onto the
-per-feature trajectory. The per-feature score is the maximum positive
-projection across templates; per-event scores are averaged within each
+or `event_sae.openpi.activations` either online or via
+`scripts/extract_topk.py`) with VLM-annotated event clusters, builds
+event-centered temporal windows around each event, and projects three
+time templates (pulse, step-up, step-down) onto the per-feature
+trajectory. The per-feature score is the maximum positive projection
+across templates; per-event scores are averaged within each
 `(cluster, episode)` group and then across episodes to give one row per
 cluster.
 
+Three matrices are produced per call, mirroring openpi-mech's
+`build_openpi_feature_score_matrix.py`:
+
+  - ``matrix_raw``         — `max(pulse, step_up, step_down)` over the
+                             3 templates (event_aligned score)
+  - ``matrix_window_mean`` — mean activation over each event's window
+                             (window_mean score)
+  - ``matrix_task_mean``   — per-task mean activation over every cached
+                             timestep (task_mean score)
+
+The ``step_mapping`` argument controls how shard rows map to env
+timesteps (mirrors openpi-mech):
+
+  - ``action_executed`` (OpenPI AE default): one env step per row at
+    ``chunk_start + token_idx`` when the token is executed.
+  - ``chunk_executed`` (OpenPI PG default): broadcast each row to every
+    executed env step of its chunk
+    (``chunk_start..chunk_start+executed_chunk_len-1``).
+  - ``inference_step`` (OpenVLA legacy / fallback): use ``step_in_episode``
+    directly (no chunk semantics).
+
 Output payload (single torch.save .pt):
 
-  - `matrix`              : `(num_rows, dict_size)` float32 score matrix
-  - `row_keys`            : per-row cluster metadata (`task_description`,
-                            `cluster_id`, `phrase`, `phase`, episode coverage,
-                            member counts, ...)
-  - `row_results`         : per-row top-N feature summaries
-  - `templates`           : the three time templates used
-  - `selection_counts`    : join + filter accounting
-  - `selected_events`     : per-event provenance after scoring
-  - `source`              : input paths + manifest summary
+  - `matrix_raw` / `matrix_window_mean` / `matrix_task_mean`
+  - `matrix`               : alias of `matrix_raw` for backward compat
+  - `row_keys`             : per-row cluster metadata
+  - `row_results`          : per-row top-N feature summaries
+  - `templates`            : the three time templates used
+  - `selection_counts`     : join + filter accounting
+  - `selected_events`      : per-event provenance after scoring
+  - `step_mapping`         : the mapping used
+  - `source`               : input paths + manifest summary
 """
 
 from __future__ import annotations
@@ -112,20 +134,62 @@ def _fit_step_window(
     return [s + shift for s in requested_steps], requested_steps, shift
 
 
-def _mean_action_token_rows(
-    forward_rows: dict[int, dict],
+def build_templates_at_event_idx(window_size: int, event_idx: int) -> dict[str, torch.Tensor]:
+    """Boundary-aware templates: when the event window is shifted to stay
+    inside ``[0, num_steps)``, the event position inside the window may not
+    be the center any more. Templates are re-centered around
+    ``event_idx`` so pulse / step-up / step-down stay anchored on the
+    waypoint. Matches openpi-mech's ``_build_templates_at_event_idx``."""
+    if event_idx < 0 or event_idx > 2 * window_size:
+        raise ValueError(f"event_idx={event_idx} outside window length {2 * window_size + 1}.")
+    positions = torch.arange(2 * window_size + 1, dtype=torch.float32) - float(event_idx)
+    pulse = torch.clamp(1.0 - torch.abs(positions) / float(window_size + 1), min=0.0)
+    pulse = _normalize_template(pulse)
+    step_up = torch.where(positions < 0, -torch.ones_like(positions), torch.ones_like(positions))
+    step_up = _normalize_template(step_up)
+    step_down = -step_up
+    return {"pulse": pulse, "step_up": step_up, "step_down": step_down}
+
+
+def _effective_steps_for_row(
     *,
-    dict_size: int,
-    action_dim: int,
-) -> torch.Tensor | None:
-    """Average the last-token sparse SAE rows across the first `action_dim` forwards."""
-    if len(forward_rows) < action_dim:
-        return None
-    step_vector = torch.zeros(dict_size, dtype=torch.float32)
-    for forward_idx in sorted(forward_rows)[:action_dim]:
-        row = forward_rows[forward_idx]
-        step_vector.index_add_(0, row["top_feature_ids"], row["top_feature_vals"])
-    return step_vector / float(action_dim)
+    step_mapping: str,
+    step_in_episode: int,
+    token_idx: int,
+    chunk_start_step: int,
+    executed_chunk_len: int,
+) -> list[int]:
+    """Translate a topk-shard row into the list of env steps it represents.
+
+    Matches openpi-mech ``build_openpi_feature_score_matrix.py::_effective_steps``.
+    ``chunk_start_step`` and ``executed_chunk_len`` may be ``-1`` sentinels
+    on OpenVLA shards (no chunking); in that case only ``inference_step``
+    mode is valid.
+    """
+    if step_mapping == "inference_step":
+        return [step_in_episode] if step_in_episode >= 0 else []
+    if step_mapping == "action_executed":
+        if chunk_start_step < 0 or executed_chunk_len <= 0:
+            return []
+        if token_idx < 0 or token_idx >= executed_chunk_len:
+            return []
+        return [chunk_start_step + token_idx]
+    if step_mapping == "chunk_executed":
+        if chunk_start_step < 0 or executed_chunk_len <= 0:
+            return []
+        return [chunk_start_step + offset for offset in range(int(executed_chunk_len))]
+    raise ValueError(f"Unsupported step_mapping={step_mapping!r}")
+
+
+def _default_step_mapping(capture_target: str | None) -> str:
+    """Backend default: AE → action_executed (per-token executed env step);
+    PG → chunk_executed (prefix conditions whole executed chunk); anything
+    else → inference_step (OpenVLA legacy)."""
+    if capture_target == "action_expert":
+        return "action_executed"
+    if capture_target == "paligemma":
+        return "chunk_executed"
+    return "inference_step"
 
 
 # ---------------------------------------------------------------------------
@@ -249,54 +313,163 @@ def join_cluster_events(
 # ---------------------------------------------------------------------------
 
 
-def _load_topk_activation_index(
+def _load_manifest(topk_run_dir: Path) -> dict:
+    """Find a `token_topk_sparse_v1` manifest under ``topk_run_dir`` or any
+    immediate ``sae_activations/<submodule>/`` subdir (online OpenPI puts
+    shards in the subdir; offline extract_topk writes them flat)."""
+    manifest_path = topk_run_dir / "manifest.json"
+    if manifest_path.is_file():
+        with manifest_path.open("r", encoding="utf-8") as f:
+            manifest = json.load(f)
+        if manifest.get("format") != "token_topk_sparse_v1":
+            raise ValueError(f"Unsupported manifest format: {manifest.get('format')!r}")
+        return manifest
+    for sub in (topk_run_dir / "sae_activations").glob("*"):
+        cand = sub / "manifest.json"
+        if cand.is_file():
+            with cand.open("r", encoding="utf-8") as f:
+                manifest = json.load(f)
+            if manifest.get("format") == "token_topk_sparse_v1":
+                return manifest
+    raise FileNotFoundError(f"No token_topk_sparse_v1 manifest under {topk_run_dir}")
+
+
+def _resolve_shard_path(topk_run_dir: Path, shard_relpath: str) -> Path:
+    """Shard paths in manifest may be relative to either the run root or
+    the legacy ``sae_activations/<submodule>`` subdir. Resolve to absolute."""
+    direct = topk_run_dir / shard_relpath
+    if direct.is_file():
+        return direct
+    for sub in (topk_run_dir / "sae_activations").glob("*"):
+        cand = sub / shard_relpath
+        if cand.is_file():
+            return cand
+    raise FileNotFoundError(f"Shard {shard_relpath} not under {topk_run_dir}")
+
+
+def _load_timestep_vectors(
     topk_run_dir: Path,
     *,
-    selected_episode_nums: set[int],
-    needed_steps_by_episode: dict[int, set[int]],
-) -> tuple[dict[tuple[int, int], dict[int, dict]], dict]:
-    """Walk topk shards (token_topk_sparse_v1) and collect, for each
-    (episode, step) we need, the last-token sparse row per forward_idx."""
-    manifest_path = topk_run_dir / "manifest.json"
-    if not manifest_path.is_file():
-        raise FileNotFoundError(f"Missing manifest.json: {manifest_path}")
-    with manifest_path.open("r", encoding="utf-8") as f:
-        manifest = json.load(f)
-    if manifest.get("format") != "token_topk_sparse_v1":
-        raise ValueError(f"Unsupported manifest format: {manifest.get('format')!r}")
+    step_mapping: str,
+    episode_to_task_id: dict[int, int],
+    task_id_set: set[int],
+    dict_size: int,
+) -> tuple[
+    dict[tuple[int, int], torch.Tensor],
+    dict[int, torch.Tensor],
+    dict[int, int],
+    dict,
+    dict[str, int],
+]:
+    """Walk topk shards and accumulate per-``(episode, env_step)`` dense
+    vectors under ``step_mapping``. Mirrors openpi-mech's
+    ``_load_timestep_vectors``:
 
-    max_episode = max(selected_episode_nums) if selected_episode_nums else -1
-    last_token_row: dict[tuple[int, int], dict[int, dict]] = defaultdict(dict)
-    for shard_meta in manifest["shards"]:
-        shard_path = topk_run_dir / shard_meta["path"]
+    * Filter by ``task_id`` (read EVERY episode in any selected task,
+      not just episodes that produced clustered events). This matters
+      because ``matrix_task_mean`` is the per-task mean over **all**
+      rollout timesteps the cache covers, not only event-window ones.
+    * Compute per-timestep means first, then aggregate task means as
+      the mean of per-timestep means weighted equally by timestep — not
+      by row count. Under ``chunk_executed`` a single row contributes to
+      multiple timesteps; row-count weighting overcounts wide chunks.
+    """
+    manifest = _load_manifest(topk_run_dir)
+    counters = {
+        "shards_loaded": 0,
+        "rows_seen": 0,
+        "rows_used": 0,
+        "rows_skipped_unknown_task": 0,
+        "rows_skipped_nonexecuted": 0,
+        "rows_skipped_no_effective_step": 0,
+    }
+    timestep_sums: dict[tuple[int, int], torch.Tensor] = {}
+    timestep_counts: dict[tuple[int, int], int] = defaultdict(int)
+    timestep_task_ids: dict[tuple[int, int], int] = {}
+
+    shard_iter = manifest["shards"]
+    if tqdm is not None:
+        shard_iter = tqdm(shard_iter, desc="Loading topk shards", unit="shard")
+    for shard_meta in shard_iter:
+        shard_path = _resolve_shard_path(topk_run_dir, shard_meta["path"])
         payload = torch.load(shard_path, map_location="cpu")
-        episode_num = payload["episode_num"].to(dtype=torch.int64)
-        if int(episode_num.numel()) == 0:
-            continue
-        if int(episode_num[0]) > max_episode:
-            break
-        step_in_episode = payload["step_in_episode"].to(dtype=torch.int64)
-        global_forward_idx = payload["global_forward_idx"].to(dtype=torch.int64)
-        token_idx = payload["token_idx"].to(dtype=torch.int64)
-        top_feature_ids = payload["top_feature_ids"].to(dtype=torch.int64)
-        top_feature_vals = payload["top_feature_vals"].to(dtype=torch.float32)
-        for row_idx in range(int(episode_num.shape[0])):
-            ep = int(episode_num[row_idx])
-            if ep not in selected_episode_nums:
+        counters["shards_loaded"] += 1
+        ep_arr = payload["episode_num"].to(dtype=torch.int64)
+        step_arr = payload["step_in_episode"].to(dtype=torch.int64)
+        tok_arr = payload["token_idx"].to(dtype=torch.int64)
+        chunk_start_arr = payload.get("chunk_start_step")
+        if chunk_start_arr is None:
+            chunk_start_arr = torch.full_like(ep_arr, -1)
+        else:
+            chunk_start_arr = chunk_start_arr.to(dtype=torch.int64)
+        exec_len_arr = payload.get("executed_chunk_len")
+        if exec_len_arr is None:
+            exec_len_arr = torch.full_like(ep_arr, -1)
+        else:
+            exec_len_arr = exec_len_arr.to(dtype=torch.int64)
+        feat_ids = payload["top_feature_ids"].to(dtype=torch.int64)
+        feat_vals = payload["top_feature_vals"].to(dtype=torch.float32)
+        n_rows = int(ep_arr.shape[0])
+        counters["rows_seen"] += n_rows
+
+        for row_idx in range(n_rows):
+            ep = int(ep_arr[row_idx])
+            task_id = episode_to_task_id.get(ep)
+            if task_id is None or task_id not in task_id_set:
+                counters["rows_skipped_unknown_task"] += 1
                 continue
-            st = int(step_in_episode[row_idx])
-            if st not in needed_steps_by_episode[ep]:
+            steps = _effective_steps_for_row(
+                step_mapping=step_mapping,
+                step_in_episode=int(step_arr[row_idx]),
+                token_idx=int(tok_arr[row_idx]),
+                chunk_start_step=int(chunk_start_arr[row_idx]),
+                executed_chunk_len=int(exec_len_arr[row_idx]),
+            )
+            if not steps:
+                if step_mapping == "action_executed":
+                    counters["rows_skipped_nonexecuted"] += 1
+                else:
+                    counters["rows_skipped_no_effective_step"] += 1
                 continue
-            fwd = int(global_forward_idx[row_idx])
-            tok = int(token_idx[row_idx])
-            current = last_token_row[(ep, st)].get(fwd)
-            if current is None or tok > current["token_idx"]:
-                last_token_row[(ep, st)][fwd] = {
-                    "token_idx": tok,
-                    "top_feature_ids": top_feature_ids[row_idx].clone(),
-                    "top_feature_vals": top_feature_vals[row_idx].clone(),
-                }
-    return last_token_row, manifest
+            row_indices = feat_ids[row_idx]
+            row_values = feat_vals[row_idx]
+            for step in steps:
+                if step < 0:
+                    counters["rows_skipped_no_effective_step"] += 1
+                    continue
+                key = (ep, step)
+                vec = timestep_sums.get(key)
+                if vec is None:
+                    vec = torch.zeros(dict_size, dtype=torch.float32)
+                    timestep_sums[key] = vec
+                    timestep_task_ids[key] = task_id
+                vec.index_add_(0, row_indices, row_values)
+                timestep_counts[key] += 1
+                counters["rows_used"] += 1
+
+    # Per-timestep mean.
+    timestep_vectors: dict[tuple[int, int], torch.Tensor] = {}
+    for key, vec_sum in timestep_sums.items():
+        c = timestep_counts[key]
+        if c > 0:
+            timestep_vectors[key] = vec_sum / float(c)
+
+    # Per-task mean of per-timestep vectors. Mirrors openpi-mech.
+    task_sums: dict[int, torch.Tensor] = {}
+    task_counts: dict[int, int] = defaultdict(int)
+    for key, vec in timestep_vectors.items():
+        tid = timestep_task_ids[key]
+        if tid not in task_sums:
+            task_sums[tid] = torch.zeros(dict_size, dtype=torch.float32)
+        task_sums[tid] += vec
+        task_counts[tid] += 1
+    task_means: dict[int, torch.Tensor] = {}
+    for tid, vec_sum in task_sums.items():
+        c = task_counts[tid]
+        if c > 0:
+            task_means[tid] = vec_sum / float(c)
+
+    return timestep_vectors, task_means, dict(task_counts), manifest, counters
 
 
 def score_cluster_features(
@@ -308,13 +481,22 @@ def score_cluster_features(
     output_path: Path,
     window_size: int = 5,
     top_n: int = 20,
-    action_dim: int = 7,
+    step_mapping: str = "auto",
+    prompt_records_path: Path | None = None,
 ) -> dict:
-    """Build the event-feature score matrix and save a single `.pt` payload.
+    """Build the event-feature score matrices and save a single `.pt`
+    payload. Mirrors openpi-mech ``build_openpi_feature_score_matrix.py``.
 
-    `topk_run_dir` must contain `manifest.json` (`token_topk_sparse_v1`) + the
-    referenced shards. Either online (sbatch `mode=topk`) or offline
-    (`scripts/extract_topk.py`) sources are accepted.
+    Three matrices are produced (paper Table 4 / Fig 3):
+
+      * ``matrix_raw``: max-over-templates projection (event_aligned)
+      * ``matrix_window_mean``: mean activation over the event window
+      * ``matrix_task_mean``: per-task mean activation across all
+        timesteps the cache covers
+
+    ``step_mapping`` defaults to ``"auto"``: pick per ``manifest.capture_target``
+    (``action_executed`` for ``action_expert``, ``chunk_executed`` for
+    ``paligemma``, otherwise ``inference_step``).
     """
     topk_run_dir = Path(topk_run_dir).resolve()
     event_features_path = Path(event_features_path).resolve()
@@ -322,6 +504,14 @@ def score_cluster_features(
     cluster_annotations_path = Path(cluster_annotations_path).resolve()
     output_path = Path(output_path).resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Peek manifest for capture_target before joining, so step_mapping
+    # auto-detect runs before any aggregation.
+    manifest = _load_manifest(topk_run_dir)
+    dict_size = int(manifest["dict_size"])
+    capture_target = manifest.get("capture_target")
+    if step_mapping == "auto":
+        step_mapping = _default_step_mapping(capture_target)
 
     join = join_cluster_events(
         event_features=load_jsonl(event_features_path),
@@ -332,10 +522,10 @@ def score_cluster_features(
         raise RuntimeError("No usable clustered events after the join.")
 
     w = window_size
-    selected_episode_nums: set[int] = set()
-    needed_steps_by_episode: dict[int, set[int]] = defaultdict(set)
     usable_events: list[dict] = []
     skipped_window = 0
+    shifted_window_count = 0
+    event_episode_to_task_id: dict[int, int] = {}
     for event in join.selected_events:
         episode = int(event["episode_num"])
         num_steps = int(event["num_steps"])
@@ -345,51 +535,76 @@ def score_cluster_features(
         if window_steps is None:
             skipped_window += 1
             continue
+        event_idx_in_window = w - int(shift)
+        if event_idx_in_window < 0 or event_idx_in_window > 2 * w:
+            skipped_window += 1
+            continue
+        if shift != 0:
+            shifted_window_count += 1
         event = dict(event)
-        event.update({"window_steps": window_steps, "requested_steps": requested, "window_shift": int(shift)})
+        event.update(
+            {
+                "window_steps": window_steps,
+                "requested_steps": requested,
+                "window_shift": int(shift),
+                "event_idx_in_window": int(event_idx_in_window),
+            }
+        )
         usable_events.append(event)
-        selected_episode_nums.add(episode)
-        for step in window_steps:
-            needed_steps_by_episode[episode].add(step)
+        event_episode_to_task_id[episode] = int(event["task_id"])
     if not usable_events:
         raise RuntimeError("No events remained after centered-window filtering.")
 
-    last_token_row, manifest = _load_topk_activation_index(
-        topk_run_dir,
-        selected_episode_nums=selected_episode_nums,
-        needed_steps_by_episode=needed_steps_by_episode,
-    )
-    dict_size = int(manifest["dict_size"])
-    templates = build_templates(w)
+    # Episode → task_id for the WHOLE run (not only event-window episodes).
+    # Paper's matrix_task_mean is the per-task mean over every cached
+    # timestep, so we need a full episode mapping. Prefer prompt_records;
+    # fall back to the event-only mapping if not provided (paper-style
+    # task_mean will be approximated).
+    episode_to_task_id: dict[int, int] = dict(event_episode_to_task_id)
+    if prompt_records_path is not None:
+        for record in load_jsonl(Path(prompt_records_path).resolve()):
+            ep = int(record["episode_num"])
+            tid = int(record["task_id"])
+            episode_to_task_id[ep] = tid
+    task_id_set: set[int] = set(event_episode_to_task_id.values())
 
+    timestep_vectors, task_means, task_counts, _manifest, load_counters = _load_timestep_vectors(
+        topk_run_dir,
+        step_mapping=step_mapping,
+        episode_to_task_id=episode_to_task_id,
+        task_id_set=task_id_set,
+        dict_size=dict_size,
+    )
+
+    # ---- score per event ----
     episode_group_scores: dict[tuple[str, int], dict[str, list[torch.Tensor]]] = defaultdict(
         lambda: defaultdict(list)
     )
+    episode_group_window_means: dict[tuple[str, int], list[torch.Tensor]] = defaultdict(list)
     episode_group_event_counts: dict[tuple[str, int], int] = defaultdict(int)
     selected_event_payloads: list[dict] = []
-    skipped_missing_rows = 0
+    skipped_missing_window_vectors = 0
+
     event_iter = tqdm(usable_events, desc="Scoring events", unit="event") if tqdm is not None else usable_events
     for event in event_iter:
         episode = int(event["episode_num"])
         centered = torch.zeros((2 * w + 1, dict_size), dtype=torch.float32)
         ok = True
         for row_idx, step in enumerate(event["window_steps"]):
-            forward_rows = last_token_row.get((episode, step))
-            if not forward_rows:
+            vec = timestep_vectors.get((episode, int(step)))
+            if vec is None:
                 ok = False
                 break
-            step_vector = _mean_action_token_rows(forward_rows, dict_size=dict_size, action_dim=action_dim)
-            if step_vector is None:
-                ok = False
-                break
-            centered[row_idx] = step_vector
+            centered[row_idx] = vec
         if not ok:
-            skipped_missing_rows += 1
+            skipped_missing_window_vectors += 1
             continue
-        pattern_scores = _project_pattern_scores(centered, templates)
+        templates_for_event = build_templates_at_event_idx(w, int(event["event_idx_in_window"]))
+        pattern_scores = _project_pattern_scores(centered, templates_for_event)
         group_key = (str(event["cluster_id"]), episode)
         for name, vec in pattern_scores.items():
             episode_group_scores[group_key][name].append(vec)
+        episode_group_window_means[group_key].append(centered.mean(dim=0))
         episode_group_event_counts[group_key] += 1
         selected_event_payloads.append(
             {
@@ -408,15 +623,19 @@ def score_cluster_features(
                 "requested_steps": event["requested_steps"],
                 "window_steps": event["window_steps"],
                 "window_shift": event["window_shift"],
+                "event_idx_in_window": event["event_idx_in_window"],
             }
         )
     if not selected_event_payloads:
         raise RuntimeError("No events remained after activation-window filtering.")
 
+    # ---- aggregate per (cluster, episode) → per cluster ----
     row_scores: dict[str, list[torch.Tensor]] = defaultdict(list)
+    row_window_means: dict[str, list[torch.Tensor]] = defaultdict(list)
     row_episode_counts: dict[str, int] = defaultdict(int)
     row_event_counts: dict[str, int] = defaultdict(int)
-    for (cluster_id, _ep), pattern_lists in episode_group_scores.items():
+    for group_key, pattern_lists in episode_group_scores.items():
+        cluster_id, _ep = group_key
         group_means = {
             name: torch.stack(score_list, dim=0).mean(dim=0)
             for name, score_list in pattern_lists.items()
@@ -425,8 +644,11 @@ def score_cluster_features(
             group_means["pulse"], torch.maximum(group_means["step_up"], group_means["step_down"])
         )
         row_scores[cluster_id].append(combined)
+        row_window_means[cluster_id].append(
+            torch.stack(episode_group_window_means[group_key], dim=0).mean(dim=0)
+        )
         row_episode_counts[cluster_id] += 1
-        row_event_counts[cluster_id] += episode_group_event_counts[(cluster_id, _ep)]
+        row_event_counts[cluster_id] += episode_group_event_counts[group_key]
 
     row_cluster_ids = sorted(
         row_scores,
@@ -436,9 +658,18 @@ def score_cluster_features(
         ),
     )
     num_rows = len(row_cluster_ids)
-    matrix = torch.zeros((num_rows, dict_size), dtype=torch.float32)
+    matrix_raw = torch.zeros((num_rows, dict_size), dtype=torch.float32)
+    matrix_window_mean = torch.zeros((num_rows, dict_size), dtype=torch.float32)
+    matrix_task_mean = torch.zeros((num_rows, dict_size), dtype=torch.float32)
+    cluster_to_task_id: dict[str, int] = {}
+    for event in selected_event_payloads:
+        cluster_to_task_id.setdefault(str(event["cluster_id"]), int(event["task_id"]))
     for row_idx, cluster_id in enumerate(row_cluster_ids):
-        matrix[row_idx] = torch.stack(row_scores[cluster_id], dim=0).mean(dim=0)
+        matrix_raw[row_idx] = torch.stack(row_scores[cluster_id], dim=0).mean(dim=0)
+        matrix_window_mean[row_idx] = torch.stack(row_window_means[cluster_id], dim=0).mean(dim=0)
+        task_id = cluster_to_task_id.get(cluster_id, -1)
+        if task_id in task_means:
+            matrix_task_mean[row_idx] = task_means[task_id]
 
     row_results = []
     for row_idx, cluster_id in enumerate(row_cluster_ids):
@@ -452,7 +683,9 @@ def score_cluster_features(
                 "num_episode_groups": row_episode_counts[cluster_id],
                 "num_events": row_event_counts[cluster_id],
                 "episode_coverage": meta["episode_coverage"],
-                "top_features": _row_top_summary(matrix[row_idx], top_n),
+                "raw_top_features": _row_top_summary(matrix_raw[row_idx], top_n),
+                "window_mean_top_features": _row_top_summary(matrix_window_mean[row_idx], top_n),
+                "task_mean_top_features": _row_top_summary(matrix_task_mean[row_idx], top_n),
             }
         )
 
@@ -466,25 +699,30 @@ def score_cluster_features(
             "topk": int(manifest["topk"]),
             "layer": manifest.get("layer"),
             "sae_path": manifest.get("sae_path"),
+            "capture_target": capture_target,
         },
         "window_size": window_size,
         "top_n": top_n,
-        "action_dim": action_dim,
+        "step_mapping": step_mapping,
         "row_semantics": "(task_description, cluster_id, phrase, phase)",
         "score_definitions": {
-            "pulse": "positive projection onto a symmetric local-peak template after time-centering",
-            "step_up": "positive projection onto a low-to-high step template after time-centering",
-            "step_down": "positive projection onto a high-to-low step template after time-centering",
+            "pulse": "positive projection onto a symmetric local-peak template (event-centered) after time-centering",
+            "step_up": "positive projection onto a low-to-high step template (event-centered) after time-centering",
+            "step_down": "positive projection onto a high-to-low step template (event-centered) after time-centering",
             "combined_score": "max(pulse, step_up, step_down) per event, then averaged within (cluster, episode) and across episodes",
-            "activation_row_semantics": "per env step: average of the last sparse top-k row across the first `action_dim` forwards",
+            "matrix_raw": "per-cluster mean of combined_score (== event_aligned ranking)",
+            "matrix_window_mean": "per-cluster mean of window-mean activation",
+            "matrix_task_mean": "per-cluster, broadcast the per-task mean activation over all cached timesteps",
         },
-        "templates": {name: template.clone() for name, template in templates.items()},
         "selection_counts": {
             **join.counts,
             "skipped_window": skipped_window,
+            "shifted_window_count": shifted_window_count,
             "selected_events_before_activation_filter": len(usable_events),
             "selected_events_after_activation_filter": len(selected_event_payloads),
-            "skipped_missing_action_token_rows": skipped_missing_rows,
+            "skipped_missing_window_vectors": skipped_missing_window_vectors,
+            "task_timestep_counts": dict(task_counts),
+            **load_counters,
         },
         "selected_events": selected_event_payloads,
         "row_keys": [
@@ -492,10 +730,15 @@ def score_cluster_features(
                 **join.cluster_metadata_by_id[cid],
                 "num_episode_groups": row_episode_counts[cid],
                 "num_events": row_event_counts[cid],
+                "task_id": cluster_to_task_id.get(cid),
             }
             for cid in row_cluster_ids
         ],
-        "matrix": matrix,
+        # Three paper-faithful matrices + a `matrix` alias for backward compat.
+        "matrix_raw": matrix_raw,
+        "matrix_window_mean": matrix_window_mean,
+        "matrix_task_mean": matrix_task_mean,
+        "matrix": matrix_raw,
         "row_results": row_results,
     }
     torch.save(payload, output_path)
@@ -503,5 +746,6 @@ def score_cluster_features(
         "output_path": str(output_path),
         "num_rows": num_rows,
         "dict_size": dict_size,
+        "step_mapping": step_mapping,
         "selected_events": len(selected_event_payloads),
     }

@@ -1,9 +1,8 @@
 """LIBERO closed-loop evaluation loop for openVLA, with optional SAE
 activation collection and user-supplied extra hooks.
 
-CoRL paper's `apply_gate_proj_hooks` / `load_intervention_dict` machinery is
-intentionally not migrated; if you want zero-out / single-feature interventions,
-write them as an `extra_hook_applier` (Phase G).
+Single-feature / zero-out interventions are not built in; supply them as an
+``extra_hook_applier`` (see ``scripts/openvla/intervene.py``).
 """
 
 from __future__ import annotations

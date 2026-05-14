@@ -26,7 +26,11 @@ from event_sae.keyframes import (
 
 def _default_output_dir(records_path: Path, err_threshold: float, waypoint_mode: str) -> Path:
     threshold_tag = f"{err_threshold:.4f}".rstrip("0").rstrip(".").replace(".", "p")
-    return Path("logs") / "openvla" / "keyframes" / records_path.parent.name / f"dp_{waypoint_mode}_err{threshold_tag}"
+    # Pick the backend bucket from the source path so OpenPI runs do not
+    # land under logs/openvla/. Falls back to "openvla" for legacy layouts.
+    parts = records_path.resolve().parts
+    backend = next((p for p in parts if p in {"openvla", "openpi"}), "openvla")
+    return Path("logs") / backend / "keyframes" / records_path.parent.name / f"dp_{waypoint_mode}_err{threshold_tag}"
 
 
 def main() -> None:

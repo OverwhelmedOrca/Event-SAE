@@ -3,13 +3,14 @@
 Closed-loop interpretability pipeline for the openVLA backbone on the
 LIBERO simulation suites.
 
-## Reproducibility check
+## Pipeline sanity check (5-trial scale)
 
-We re-ran the openVLA + LIBERO-Spatial zero-out sweep (top-5 features
-per ranking, α = 0, 5 trials per task, seed 0) in three configurations
-and compared each to the reference libero_spatial numbers from the
-original research code. All four rankings match the reference mean
-ΔSR within ~3 percentage points.
+This is the public minimal sweep (LIBERO-Spatial, top-5 features
+per ranking, α = 0, 5 trials per task, seed 0), not the paper's
+full-scale experiment. The goal is to verify this codebase
+reproduces the qualitative ranking order observed in the reference
+research code at this sample size; small numerical gaps are
+expected.
 
 | Configuration                  | SAE       | Feature lists  | Baseline SR | Δ event-aligned | Δ window-mean | Δ task-mean | Δ random-alive |
 |---|---|---|---:|---:|---:|---:|---:|
@@ -19,13 +20,12 @@ original research code. All four rankings match the reference mean
 
 ΔSR is in percentage points relative to each row's own baseline run.
 
-The third row is the strongest end-to-end check: only the SAE is held
-fixed, and every other step runs through this repository. Differences
-stay within the ~2 pp cuDNN / float32 noise floor.
+In the third row, only the SAE is held fixed, and every other step
+runs through this repository. Small gaps from the reference are
+expected: 50 rollouts per condition leave a few pp of sampling
+noise, and float32 / CUDA versions can also shift SR run-to-run.
 
 ## Installation
-
-Two steps; run them in order.
 
 ### Step 1: Conda environment
 
@@ -87,28 +87,11 @@ keyframe extraction, **(3)** event clustering with VLM annotation,
 **(4)** closed-loop intervention. Between (3) and (4) a feature
 ranking step picks candidate features to intervene on.
 
-Every command below chains off a single rollout. After step (a) runs,
-export the run directory name so later commands can derive their
-paths:
-
-```bash
-export EVAL_RUN=EVAL-libero_spatial-openvla-<DATE_TIME>   # name of the dir under logs/openvla/
-```
-
-For `$SAE_CKPT`, either train one in step (b) or download the
-paper's pretrained checkpoints from the Hugging Face Hub:
-
-```python
-# pip install huggingface_hub
-from huggingface_hub import hf_hub_download
-ckpt = hf_hub_download("mr-cabbage/event-sae-openvla-libero",
-                       "libero_spatial/ae.pt")
-print(ckpt)   # → export SAE_CKPT=<that path>
-```
-
-The Hub repo holds one SAE per LIBERO suite (`libero_spatial`,
-`libero_object`, `libero_goal`, `libero_10`), each at openVLA
-layer 31.
+Every command below chains off a single rollout. Step (a) creates a
+timestamped run directory under `logs/openvla/`; later commands
+reference it via `$EVAL_RUN` (the export is shown after step (a)).
+Later commands also reference `$SAE_CKPT` — set it in step (b) to
+either a freshly-trained checkpoint or a pre-trained one.
 
 ## Phase 1 — SAE training
 
@@ -125,13 +108,16 @@ python scripts/openvla/collect_activations.py \
     --config configs/examples/openvla/collect_libero_spatial.yaml
 ```
 
+This creates a timestamped run directory. Export its name so later
+steps can derive their paths:
+
+```bash
+export EVAL_RUN=EVAL-libero_spatial-openvla-<DATE_TIME>   # name of the dir under logs/openvla/
+```
+
 Outputs under `logs/openvla/$EVAL_RUN/sae_activations/`:
 - dense `.pt` shards — input to step (b)
 - `activation_index.jsonl` — input to step (h)
-
-To skip step (h), use the **online top-k mode**: set
-`sae_collect.mode: "topk"` and `sae_collect.sae_checkpoint: <path>`
-in the YAML and the rollout writes sparse shards directly.
 
 ### (b) Train an SAE on collected shards
 
@@ -148,8 +134,22 @@ python scripts/train_sae.py \
 Output: `ae.pt` + `config.json` under
 `logs/openvla/sae/libero_spatial_layer31/trainer_0/`.
 
-Skip this step if you use the pretrained checkpoints from the Hugging
-Face Hub.
+Or skip step (b) and use the paper's four pre-trained SAEs (one per
+LIBERO suite, each at openVLA layer 31, BatchTopK k=64) from the
+[Hugging Face Hub](https://huggingface.co/mr-cabbage/event-sae-openvla-libero).
+Set `$SAE_CKPT` to either the HF download or the local training
+output:
+
+```bash
+# Pretrained, e.g. LIBERO-Spatial:
+SAE_CKPT=$(hf download mr-cabbage/event-sae-openvla-libero libero_spatial/ae.pt)
+
+# Or locally trained:
+SAE_CKPT=logs/openvla/sae/libero_spatial_layer31/trainer_0/ae.pt
+```
+
+All subsequent commands in this doc reference `--sae-checkpoint
+$SAE_CKPT`.
 
 ## Phase 2 — Kinematic keyframe extraction
 
@@ -159,8 +159,8 @@ independent of the SAE.
 
 ### (c) Extract AWE kinematic keyframes from rollout trajectories
 
-AWE picks waypoints along the end-effector trajectory. CPU-only.
-Defaults (`pos_only`, error budget η = 0.05) are baked into the CLI.
+CPU-only. Defaults (`pos_only`, error budget η = 0.05) are baked
+into the CLI.
 
 ```bash
 python scripts/extract_keyframes.py \
@@ -255,11 +255,18 @@ with a different SAE or layer needs no fresh rollout.
 python scripts/extract_topk.py \
     --dense-dir logs/openvla/$EVAL_RUN/sae_activations/post_mlp_residual \
     --sae-checkpoint $SAE_CKPT \
-    --layer-idx 31
+    --layer-idx 31 \
+    --output-dir logs/openvla/$EVAL_RUN/topk_activations
 ```
 
 Output: top-k shards + `manifest.json` under
 `logs/openvla/$EVAL_RUN/topk_activations/`.
+
+To skip step (h) entirely, use the **online top-k mode** in step
+(a): set `sae_collect.mode: "topk"` and `sae_collect.sae_checkpoint:
+<path>` in the YAML and the rollout writes sparse shards directly.
+This requires an SAE checkpoint already available (from a prior
+training run or the Hugging Face Hub).
 
 ### (i) Event-feature score matrix
 
@@ -272,6 +279,7 @@ averaged across episodes. CPU-only.
 ```bash
 python scripts/score_cluster_features.py \
     --topk-run-dir logs/openvla/$EVAL_RUN/topk_activations \
+    --prompt-records-path logs/openvla/$EVAL_RUN/prompt_records.jsonl \
     --event-features-path logs/openvla/events/$EVAL_RUN/samples_5frames_stride2/event_features.jsonl \
     --cluster-assignments-path logs/openvla/events/$EVAL_RUN/samples_5frames_stride2/clusters/cluster_assignments.jsonl \
     --cluster-annotations-path logs/openvla/events/$EVAL_RUN/samples_5frames_stride2/clusters/gemini-2_5-flash_cluster_annotations.jsonl \
@@ -282,21 +290,7 @@ Output: one `.pt` payload — `(num_clusters, dict_size)` `matrix` plus
 `row_keys`, `row_results`, `templates`, `selection_counts`,
 `selected_events`, `source`.
 
-## Phase 4 — Closed-loop intervention
-
-At inference time, edit one SAE feature at a time and check how the
-policy's success rate changes. For chosen feature index `i` and
-scalar `α`:
-
-    z' = α · z    for index i
-    x' = x + Dec(z') − Dec(z)
-
-`α = 0` zeros the feature out, `α = 1` leaves the hidden state
-unchanged, intermediate values give partial suppression, `α > 1`
-amplifies. The SAE reconstruction error on the un-edited code is
-preserved.
-
-### (j) Build candidate feature lists from the four rankings
+### (j) Build candidate feature lists
 
 Surface the top-K features under four ranking strategies. CPU-only.
 
@@ -304,15 +298,16 @@ Surface the top-K features under four ranking strategies. CPU-only.
 python scripts/build_feature_rankings.py \
     --scores-pt logs/openvla/scores/$EVAL_RUN/event_feature_scores.pt \
     --topk-run-dir logs/openvla/$EVAL_RUN/topk_activations \
-    --prompt-records-path logs/openvla/$EVAL_RUN/prompt_records.jsonl \
     --output-dir logs/openvla/rankings/$EVAL_RUN \
     --top-k 5
 ```
 
 The four rankings:
 
-- **event-aligned** — mean of the score matrix across cluster rows.
-- **window-mean** — per-row window-mean vectors weighted by event count.
+- **event-aligned** — mean of the score matrix across canonical cluster
+  rows.
+- **window-mean** — per-row window-mean vectors weighted by event count,
+  restricted to the same canonical cluster rows.
 - **task-mean** — per-task feature means weighted by per-task step count.
 - **random-alive** — uniform sample over alive features, excluding any
   feature already chosen by the three informed rankings.
@@ -324,11 +319,27 @@ Outputs under `--output-dir`:
 - `candidates.jsonl` — flat list of `4 × K` `(ranking, rank,
   feature_id, score)` rows that feeds step (k)
 
-### (k) Run single-feature intervention on LIBERO
+## Phase 4 — Closed-loop intervention
+
+Edit one SAE feature at inference time and check how the policy's
+success rate changes. For selected feature `i` and scaling factor
+`α`:
+
+    z'_i = α · z_i        # selected feature, scaled
+    z'_j = z_j            # all other features unchanged (j ≠ i)
+    x'   = x + Dec(z') − Dec(z)
+
+`α = 0` zeros the feature out, `α = 1` leaves the hidden state
+unchanged, intermediate values give partial suppression, `α > 1`
+amplifies. The SAE reconstruction error on the un-edited code is
+preserved.
+
+### (k) Run a single-feature intervention on LIBERO
 
 Run a closed-loop LIBERO eval with the residual-preserving hook
 applied at the SAE's layer. Repeat the command once per `feature_id`
-in `candidates.jsonl`. Requires GPU.
+in `candidates.jsonl` — extract them with
+`jq -r '.feature_id' candidates.jsonl`. Requires GPU.
 
 ```bash
 python scripts/openvla/intervene.py \
