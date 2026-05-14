@@ -1,0 +1,168 @@
+"""SAE training entry point for offline activation shards.
+
+Migrated from `mechanistic-steering-vlas/src/sae_train/train.py`. Differences:
+- `device` is now a config field (auto-detected by default), instead of
+  hardcoded `"cuda:0"`.
+- Wandb logging is opt-in: set `wandb_project` to enable; empty string disables.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import torch
+from dictionary_learning.training import trainSAE
+from dictionary_learning.trainers.batch_top_k import BatchTopKSAE, BatchTopKTrainer
+from torch.utils.data import DataLoader, IterableDataset, get_worker_info
+
+
+def _auto_device() -> str:
+    return "cuda:0" if torch.cuda.is_available() else "cpu"
+
+
+@dataclass
+class SAETrainConfig:
+    """Single-run config for training one BatchTopK SAE."""
+    data_dir: str
+    layer_idx: int             # Should match the layer number in shard filenames.
+    activation_dim: int        # Activation width d_model (e.g., OpenVLA post-residual = 4096).
+    dict_size: int             # Number of SAE features (dictionary width).
+    k: int
+    lr: float
+    steps: int
+    batch_size: int
+    run_tag: str = "offline"
+    submodule_name: str = "post_mlp_residual"
+    device: str = ""           # Empty = auto (cuda if available else cpu).
+    wandb_project: str = ""    # Empty = wandb disabled.
+    wandb_group: str = ""
+    num_workers: int = 4
+    prefetch_factor: int = 2
+    pin_memory: bool = True
+    # TODO: add optional trainer/runtime params (warmup/decay, auxk, seed, autocast).
+
+    def resolved_device(self) -> str:
+        return self.device or _auto_device()
+
+
+class _ActivationShardDataset(IterableDataset):
+    def __init__(self, cfg: SAETrainConfig, shard_paths: list[Path]):
+        super().__init__()
+        self.cfg = cfg
+        self.shard_paths = shard_paths
+
+    def __iter__(self):
+        worker = get_worker_info()
+        if worker is None:
+            local_shards = list(self.shard_paths)
+        else:
+            local_shards = list(self.shard_paths[worker.id :: worker.num_workers])
+        while True:
+            if len(local_shards) > 1:
+                order = torch.randperm(len(local_shards)).tolist()
+                shard_iter = [local_shards[i] for i in order]
+            else:
+                shard_iter = local_shards
+            for shard_path in shard_iter:
+                activations = torch.load(shard_path, map_location="cpu")
+                if activations.ndim != 2:
+                    raise ValueError(
+                        f"Expected 2D activations in {shard_path}, got shape {tuple(activations.shape)}"
+                    )
+                order = torch.randperm(activations.shape[0])
+                activations = activations[order].to(torch.float32)
+                for start in range(0, activations.shape[0], self.cfg.batch_size):
+                    batch = activations[start : start + self.cfg.batch_size]
+                    if batch.shape[0] < self.cfg.batch_size:
+                        continue
+                    yield batch
+
+
+class ActivationShardDataLoader:
+    """Iterable loader for layer-specific activation shards."""
+
+    def __init__(self, cfg: SAETrainConfig):
+        self.cfg = cfg
+        self.device = cfg.resolved_device()
+        shard_paths = sorted(Path(cfg.data_dir).glob(f"layer_{cfg.layer_idx:02d}_shard_*.pt"))
+        if not shard_paths:
+            raise FileNotFoundError(
+                f"No activation shards found in {cfg.data_dir} for layer {cfg.layer_idx}."
+            )
+        self.shard_paths = shard_paths
+        self._dataset = _ActivationShardDataset(cfg, shard_paths)
+        dataloader_kwargs: dict[str, Any] = {
+            "dataset": self._dataset,
+            "batch_size": None,
+            "num_workers": cfg.num_workers,
+            "pin_memory": cfg.pin_memory and self.device.startswith("cuda"),
+            "persistent_workers": cfg.num_workers > 0,
+        }
+        if cfg.num_workers > 0:
+            dataloader_kwargs["prefetch_factor"] = cfg.prefetch_factor
+        self._dataloader = DataLoader(**dataloader_kwargs)
+
+        self.epoch = 0
+        self.global_step = 0
+        self.batches_in_epoch = 0
+        self.samples_seen = 0
+        self.current_shard = ""
+
+    def __iter__(self):
+        self.batches_in_epoch = 0
+        for batch in self._dataloader:
+            batch = batch.to(self.device, non_blocking=True)
+            self.global_step += 1
+            self.batches_in_epoch += 1
+            self.samples_seen += int(batch.shape[0])
+            yield batch
+
+
+def build_batch_topk_trainer_config(cfg: SAETrainConfig) -> dict[str, Any]:
+    """Build a single trainer config dict for `dictionary_learning.trainSAE`."""
+    return {
+        "trainer": BatchTopKTrainer,
+        "dict_class": BatchTopKSAE,
+        "activation_dim": cfg.activation_dim,
+        "dict_size": cfg.dict_size,
+        "k": cfg.k,
+        "lr": cfg.lr,
+        "steps": cfg.steps,
+        "warmup_steps": 1000,
+        "decay_start": int(cfg.steps * 0.8),
+        "seed": 0,
+        "device": cfg.resolved_device(),
+        "layer": cfg.layer_idx,
+        "lm_name": "openvla_offline",
+        "submodule_name": cfg.submodule_name,
+        "wandb_name": f"{cfg.run_tag}-l{cfg.layer_idx:02d}",
+    }
+
+
+def train_sae(cfg: SAETrainConfig, save_dir: str) -> None:
+    """Train one BatchTopK SAE run on offline activation shards."""
+    dataloader = ActivationShardDataLoader(cfg)
+    trainer_cfg = build_batch_topk_trainer_config(cfg)
+    save_steps = list(range(1500, cfg.steps + 1, 1500))
+    wandb_project = cfg.wandb_project or os.environ.get("WANDB_PROJECT", "")
+    use_wandb = bool(wandb_project)
+    if use_wandb and cfg.wandb_group:
+        # Upstream `trainSAE` does not accept a `wandb_group` kwarg; wandb
+        # picks up grouping from the WANDB_RUN_GROUP env var instead.
+        os.environ["WANDB_RUN_GROUP"] = cfg.wandb_group
+    trainSAE(
+        data=dataloader,
+        trainer_configs=[trainer_cfg],
+        steps=cfg.steps,
+        save_dir=save_dir,
+        save_steps=save_steps,
+        log_steps=500,
+        normalize_activations=True,
+        use_wandb=use_wandb,
+        wandb_project=wandb_project,
+        verbose=True,
+        autocast_dtype=torch.float32,
+    )
