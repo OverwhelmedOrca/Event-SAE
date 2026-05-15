@@ -228,7 +228,10 @@ Outputs under `clusters/` next to `event_features.jsonl`:
 Send each cluster's representative 5-frame sequences to Gemini and
 parse a `{phrase, phase}` JSON response. `phase` is one of the six
 tags from the Phase 3 intro. Default model: `gemini-2.5-flash`
-(override with `--model`).
+(override with `--model`). The paper used a stronger Gemini model;
+this default keeps annotation cost low for reproduction. Cluster
+labels are descriptive only and do not affect feature ranking or
+the intervention results.
 
 ```bash
 export GEMINI_API_KEY=<your-key>

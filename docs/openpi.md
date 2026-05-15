@@ -362,7 +362,10 @@ python scripts/annotate_clusters.py \
 ```
 
 Output: `gemini-2_5-flash_cluster_annotations.jsonl` next to
-`clusters.jsonl`.
+`clusters.jsonl`. Default model `gemini-2.5-flash` (override with
+`--model`); the paper used a stronger Gemini model, and these
+labels are descriptive only and do not affect feature ranking or
+the intervention results.
 
 ## Feature ranking (bridge between Phase 3 and Phase 4)
 
