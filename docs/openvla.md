@@ -30,7 +30,7 @@ noise, and float32 / CUDA versions can also shift SR run-to-run.
 ### Step 1: Conda environment
 
 ```bash
-conda env create -f environment.yml
+conda env create -f environment-openvla.yml
 conda activate event-sae-openvla
 ```
 
@@ -368,10 +368,8 @@ activation before / after the edit) for verifying the hook fired.
 
 ## Frozen environment snapshot
 
-If `environment.yml` ever resolves into a broken env (for example
-after an upstream package change), use the pinned snapshot in
-`environment.lock.yml` instead:
-
-```bash
-conda env create -f environment.lock.yml -n event-sae-openvla
-```
+`environment-openvla.lock.yml` is a pinned record of the conda + pip
+package versions on our working machine. It is **not a working
+installer** — editable external libraries are not included. Use it
+to cross-check versions when Step 1 / Step 2 produces a different
+env than expected.

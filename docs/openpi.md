@@ -514,3 +514,11 @@ mean of `SR_hook − SR_baseline` across its K features — this is
 how much zeroing that ranking's features hurts the policy. Repeat
 the server-then-client invocation once per `feature_id` in
 `candidates.jsonl` to fill the full per-pair ΔSR table.
+
+## Frozen environment snapshot
+
+`environment-openpi.lock.yml` is a pinned record of the conda + pip
+package versions on our working machine. It is **not a working
+installer** — editable external repos (the openpi fork,
+`dictionary_learning`, AWE) are not included. Use it to cross-check
+versions when `uv sync` produces a different env than expected.
