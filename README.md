@@ -7,6 +7,8 @@ kinematic events from closed-loop rollouts, ranking them against
 VLM-labeled event clusters, and validating each ranking with
 residual-preserving zero-out interventions.
 
+**Paper:** https://arxiv.org/abs/2605.17204
+
 Two VLA backbones are covered: **openVLA** and **openpi (π₀.₅)**, on
 the LIBERO simulation suites.
 

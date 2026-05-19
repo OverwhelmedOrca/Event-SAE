@@ -1,6 +1,9 @@
 # Private: not for public opensource release
 .claude/
 CLAUDE.md
+*_arxiv/
+*_arXiv/
+*_presentation/
 plan&todo.md
 
 # External libraries cloned by user (per README Step 2)
@@ -39,6 +42,3 @@ venv/
 .DS_Store
 *.swp
 external/openpi-event-sae/
-*_arxiv/
-*_arXiv/
-*_presentation/
