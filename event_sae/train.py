@@ -144,6 +144,8 @@ class ActivationShardDataLoader:
 
 def build_batch_topk_trainer_config(cfg: SAETrainConfig) -> dict[str, Any]:
     """Build a single trainer config dict for `dictionary_learning.trainSAE`."""
+    warmup_steps = min(1000, max(1, cfg.steps // 10))
+    decay_start = max(warmup_steps + 1, int(cfg.steps * 0.8))
     return {
         "trainer": BatchTopKTrainer,
         "dict_class": BatchTopKSAE,
@@ -152,8 +154,8 @@ def build_batch_topk_trainer_config(cfg: SAETrainConfig) -> dict[str, Any]:
         "k": cfg.k,
         "lr": cfg.lr,
         "steps": cfg.steps,
-        "warmup_steps": 1000,
-        "decay_start": int(cfg.steps * 0.8),
+        "warmup_steps": warmup_steps,
+        "decay_start": decay_start,
         "seed": 0,
         "device": cfg.resolved_device(),
         "layer": cfg.layer_idx,

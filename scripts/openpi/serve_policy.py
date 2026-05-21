@@ -28,6 +28,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+# On ROCm/JAX for MI300X, the default matmul precision can select GEMM
+# kernels that produce XLA autotuner mismatches and NaN OpenPI actions.
+# Requesting highest precision before JAX/OpenPI imports keeps inference
+# finite while preserving the rest of the ROCm stack.
+os.environ.setdefault("JAX_DEFAULT_MATMUL_PRECISION", "highest")
+
 from openpi.models import gemma as _gemma
 from openpi.models import pi0_config as _pi0_config
 from openpi.policies import policy_config as _policy_config

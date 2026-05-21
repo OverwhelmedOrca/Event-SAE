@@ -14,6 +14,7 @@ external/awe/
 # Runtime outputs (eval rollouts, activation shards, SAE checkpoints, wandb, slurm logs)
 logs/
 wandb/
+MUJOCO_LOG.TXT
 
 # HPC submission scripts — cluster-specific, not part of the opensource surface
 sbatch_scripts/

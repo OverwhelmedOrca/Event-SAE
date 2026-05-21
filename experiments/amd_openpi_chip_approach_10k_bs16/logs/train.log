@@ -1,0 +1,420 @@
+16:53:27.583 [I] Running on: d0824e459c34                                                         (802075:train.py:196)
+16:53:27.595 [I] No ROCm wheel installation found                                                 (802075:__init__.py:92)
+INFO:2026-05-21 16:53:35,486:jax._src.xla_bridge:945: Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+16:53:35.486 [I] Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory (802075:xla_bridge.py:945)
+16:53:37.648 [I] Created BasePyTreeCheckpointHandler: use_ocdbt=True, use_zarr3=False, pytree_metadata_options=PyTreeMetadataOptions(support_rich_types=False), array_metadata_store=<orbax.checkpoint._src.metadata.array_metadata_store.Store object at 0x742e3d77fa90> (802075:base_pytree_checkpoint_handler.py:334)
+16:53:37.648 [I] Created BasePyTreeCheckpointHandler: use_ocdbt=True, use_zarr3=False, pytree_metadata_options=PyTreeMetadataOptions(support_rich_types=False), array_metadata_store=<orbax.checkpoint._src.metadata.array_metadata_store.Store object at 0x742e3d77fa90> (802075:base_pytree_checkpoint_handler.py:334)
+16:53:37.648 [I] [thread=MainThread] Failed to get flag value for EXPERIMENTAL_ORBAX_USE_DISTRIBUTED_PROCESS_ID. (802075:multihost.py:390)
+16:53:37.649 [I] [process=0][thread=MainThread] CheckpointManager init: checkpointers=None, item_names=None, item_handlers={'assets': <openpi.training.checkpoints.CallbackHandler object at 0x742ce3fb4ad0>, 'train_state': <orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x742c280fa650>, 'params': <orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x742d2838d210>}, handler_registry=None (802075:checkpoint_manager.py:620)
+16:53:37.649 [I] Deferred registration for item: "assets". Adding handler `<openpi.training.checkpoints.CallbackHandler object at 0x742ce3fb4ad0>` for item "assets" and save args `<class 'openpi.training.checkpoints.CallbackSave'>` and restore args `<class 'openpi.training.checkpoints.CallbackRestore'>` to `_handler_registry`. (802075:composite_checkpoint_handler.py:234)
+16:53:37.649 [I] Deferred registration for item: "train_state". Adding handler `<orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x742c280fa650>` for item "train_state" and save args `<class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeSaveArgs'>` and restore args `<class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeRestoreArgs'>` to `_handler_registry`. (802075:composite_checkpoint_handler.py:234)
+16:53:37.649 [I] Deferred registration for item: "params". Adding handler `<orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x742d2838d210>` for item "params" and save args `<class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeSaveArgs'>` and restore args `<class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeRestoreArgs'>` to `_handler_registry`. (802075:composite_checkpoint_handler.py:234)
+16:53:37.649 [I] Deferred registration for item: "metrics". Adding handler `<orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x742c2809f9d0>` for item "metrics" and save args `<class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonSaveArgs'>` and restore args `<class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonRestoreArgs'>` to `_handler_registry`. (802075:composite_checkpoint_handler.py:234)
+16:53:37.649 [I] Initialized registry DefaultCheckpointHandlerRegistry({('assets', <class 'openpi.training.checkpoints.CallbackSave'>): <openpi.training.checkpoints.CallbackHandler object at 0x742ce3fb4ad0>, ('assets', <class 'openpi.training.checkpoints.CallbackRestore'>): <openpi.training.checkpoints.CallbackHandler object at 0x742ce3fb4ad0>, ('train_state', <class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeSaveArgs'>): <orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x742c280fa650>, ('train_state', <class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeRestoreArgs'>): <orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x742c280fa650>, ('params', <class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeSaveArgs'>): <orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x742d2838d210>, ('params', <class 'orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeRestoreArgs'>): <orbax.checkpoint._src.handlers.pytree_checkpoint_handler.PyTreeCheckpointHandler object at 0x742d2838d210>, ('metrics', <class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonSaveArgs'>): <orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x742c2809f9d0>, ('metrics', <class 'orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonRestoreArgs'>): <orbax.checkpoint._src.handlers.json_checkpoint_handler.JsonCheckpointHandler object at 0x742c2809f9d0>}). (802075:composite_checkpoint_handler.py:502)
+16:53:37.649 [I] orbax-checkpoint version: 0.11.13                                                (802075:abstract_checkpointer.py:35)
+16:53:37.649 [I] [process=0][thread=MainThread] Using barrier_sync_fn: <function get_barrier_sync_fn.<locals>.<lambda> at 0x742c280ba8e0> timeout: 7200 secs and primary_host=0 for async checkpoint writes (802075:async_checkpointer.py:170)
+16:53:37.650 [I] Found 0 checkpoint steps in /workspace/openpi/checkpoints/pi05_trossen_solo_chip_lora/amd_chip_approach_10k_bs16 (802075:checkpoint_manager.py:1701)
+16:53:37.650 [I] [process=0][thread=MainThread] CheckpointManager created,  primary_host=0, CheckpointManagerOptions=CheckpointManagerOptions(save_interval_steps=1, max_to_keep=1, keep_time_interval=None, keep_period=10000, should_keep_fn=None, best_fn=None, best_mode='max', keep_checkpoints_without_metrics=True, step_prefix=None, step_format_fixed_length=None, step_name_format=None, create=False, cleanup_tmp_directories=False, save_on_steps=frozenset(), single_host_load_and_broadcast=False, todelete_subdir=None, enable_background_delete=False, read_only=False, enable_async_checkpointing=True, async_options=AsyncOptions(timeout_secs=7200, barrier_sync_fn=None, post_finalization_callback=None, create_directories_asynchronously=True), multiprocessing_options=MultiprocessingOptions(primary_host=0, active_processes=None, barrier_sync_key_prefix=None), should_save_fn=None, file_options=FileOptions(path_permission_mode=None), save_root_metadata=True, temporary_path_class=None, save_decision_policy=None, prevent_write_metrics=False), root_directory=/workspace/openpi/checkpoints/pi05_trossen_solo_chip_lora/amd_chip_approach_10k_bs16: <orbax.checkpoint.checkpoint_manager.CheckpointManager object at 0x742c2806e550> (802075:checkpoint_manager.py:801)
+16:53:37.679 [I] Loaded norm stats from /workspace/openpi/assets/pi05_trossen_solo_chip_lora/approach_red_yellow_chip_single_arm_v1_drop_0_26 (802075:config.py:197)
+16:53:37.727 [I] data_config: DataConfig(repo_id='approach_red_yellow_chip_single_arm_v1_drop_0_26', asset_id='approach_red_yellow_chip_single_arm_v1_drop_0_26', norm_stats={'state': NormStats(mean=array([ 6.66605756e-02,  1.61910403e+00,  1.56519091e+00, -6.78578258e-01,
+       -4.93358187e-02,  1.12599522e-01, -1.76984759e-06]), std=array([2.05863237e-01, 3.85874122e-01, 3.30897301e-01, 4.89641935e-01,
+       1.19025089e-01, 1.62894890e-01, 4.99576458e-07]), q01=array([-4.88720173e-01,  8.13078024e-01,  7.05354065e-01, -1.57199603e+00,
+       -2.92675047e-01, -1.63298857e-01, -1.75728202e-06]), q99=array([ 7.11091457e-01,  2.53093794e+00,  2.33249075e+00,  2.61964670e-02,
+        2.99650869e-01,  6.19321751e-01, -1.75527930e-06])), 'actions': NormStats(mean=array([ 1.77188311e-02,  5.93116768e-02, -1.38908084e-02, -8.97534341e-02,
+       -2.16650125e-02,  3.15513946e-02, -2.25411859e-05]), std=array([9.78998989e-02, 2.53828496e-01, 1.75331697e-01, 3.78275484e-01,
+       1.02015197e-01, 9.37016308e-02, 1.08829827e-05]), q01=array([-2.88842627e-01, -4.89244461e-01, -6.46348495e-01, -1.25475395e+00,
+       -3.55331371e-01, -2.13290640e-01, -3.50475311e-05]), q99=array([ 3.34778363e-01,  8.35933920e-01,  4.81396947e-01,  6.92865473e-01,
+        2.64220319e-01,  3.57671461e-01, -1.67427063e-06]))}, repack_transforms=Group(inputs=[RepackTransform(structure={'images': {'cam_high': 'observation.images.cam_high', 'cam_right_wrist': 'observation.images.cam_right_wrist'}, 'state': 'observation.state', 'actions': 'action', 'prompt': 'prompt'})], outputs=()), data_transforms=Group(inputs=(TrossenSoloInputs(model_type=<ModelType.PI05: 'pi05'>), DeltaActions(mask=(True, True, True, True, True, True, False))), outputs=(AbsoluteActions(mask=(True, True, True, True, True, True, False)), TrossenSoloOutputs(action_dim=7))), model_transforms=Group(inputs=[InjectDefaultPrompt(prompt=None), ResizeImages(height=224, width=224), TokenizePrompt(tokenizer=<openpi.models.tokenizer.PaligemmaTokenizer object at 0x742ce3f9bc10>, discrete_state_input=True), PadStatesAndActions(model_action_dim=32)], outputs=()), use_quantile_norm=True, action_sequence_keys=('action',), prompt_from_task=True, rlds_data_dir=None, action_space=None, datasets=()) (802075:data_loader.py:243)
+16:53:37.742 [W] 'torchcodec' is not available in your platform, falling back to 'pyav' as a default decoder (802075:video_utils.py:36)
+16:53:38.120 [I] local_batch_size: 16                                                             (802075:data_loader.py:324)
+/pyenv/versions/3.11.13/lib/python3.11/site-packages/torchvision/io/_video_deprecation_warning.py:5: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
+  warnings.warn(
+/pyenv/versions/3.11.13/lib/python3.11/site-packages/torchvision/io/_video_deprecation_warning.py:5: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
+  warnings.warn(
+16:53:47.022 [I] Initialized data loader:
+[0].images['base_0_rgb']: (16, 224, 224, 3)@float32
+[0].images['left_wrist_0_rgb']: (16, 224, 224, 3)@float32
+[0].images['right_wrist_0_rgb']: (16, 224, 224, 3)@float32
+[0].image_masks['base_0_rgb']: (16,)@bool
+[0].image_masks['left_wrist_0_rgb']: (16,)@bool
+[0].image_masks['right_wrist_0_rgb']: (16,)@bool
+[0].state: (16, 32)@float32
+[0].tokenized_prompt: (16, 200)@int32
+[0].tokenized_prompt_mask: (16, 200)@bool
+[1]: (16, 50, 32)@float32 (802075:train.py:227)
+wandb: WARNING Data passed to `wandb.Image` should consist of values in the range [0, 255], image data will be normalized to this range, but behavior will be removed in a future version of wandb.
+16:53:48.085 [I] Downloading gs://openpi-assets/checkpoints/pi05_base/params to /root/.cache/openpi/openpi-assets/checkpoints/pi05_base/params (802075:download.py:84)
+16:53:48.214 [I] gcsfs experimental features enabled via GCSFS_EXPERIMENTAL_ZB_HNS_SUPPORT.       (802075:__init__.py:22)
+16:54:02.172 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.174 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.246 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.247 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.295 [I] Progress on: -/12441721931 rate:- remaining:? elapsed:00:00 postfix:-            (802075:tqdm_logging.py:154)
+16:54:02.296 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.298 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.335 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.337 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.338 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.339 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.341 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.342 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.343 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.345 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.346 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.347 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.348 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.349 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.350 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.352 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.353 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.354 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.356 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.357 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.359 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.360 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.361 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.363 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.364 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.365 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:02.366 [W] Could not determine bucket type for bucket name openpi-assets: Your default credentials were not found. To set up Application Default Credentials, see https://cloud.google.com/docs/authentication/external/set-up-adc for more information., falling back to GCSFileSystem (802075:extended_gcsfs.py:190)
+16:54:12.305 [I] Progress on: 6.85GiB/11.6GiB rate:747,591,972.7iB/s remaining:00:06 elapsed:00:10 postfix:- (802075:tqdm_logging.py:154)
+16:54:22.315 [I] Progress on: 11.4GiB/11.6GiB rate:392,341,123.1iB/s remaining:00:00 elapsed:00:20 postfix:- (802075:tqdm_logging.py:154)
+16:54:25.317 [I] Progress on: 11.6GiB/11.6GiB rate:187,235,587.6iB/s remaining:00:00 elapsed:00:23 postfix:- (802075:tqdm_logging.py:154)
+16:54:25.318 [I] Created BasePyTreeCheckpointHandler: use_ocdbt=True, use_zarr3=False, pytree_metadata_options=PyTreeMetadataOptions(support_rich_types=False), array_metadata_store=<orbax.checkpoint._src.metadata.array_metadata_store.Store object at 0x742e3d77fa90> (802075:base_pytree_checkpoint_handler.py:334)
+16:54:25.336 [I] Restoring checkpoint from /root/.cache/openpi/openpi-assets/checkpoints/pi05_base/params. (802075:checkpointer.py:298)
+16:54:30.331 [I] [process=0] /jax/checkpoint/read/bytes_per_sec: 2.5 GiB/s (total bytes: 12.5 GiB) (time elapsed: 4 seconds) (per-host) (802075:base_pytree_checkpoint_handler.py:114)
+16:54:30.331 [I] Finished restoring checkpoint in 5.00 seconds from /root/.cache/openpi/openpi-assets/checkpoints/pi05_base/params. (802075:checkpointer.py:309)
+16:54:40.233 [I] Initialized train state:
+['PaliGemma']['img']['Transformer']['encoder_norm']['bias'].value: (1152,)@float32
+['PaliGemma']['img']['Transformer']['encoder_norm']['scale'].value: (1152,)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['LayerNorm_0']['bias'].value: (27, 1152)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['LayerNorm_0']['scale'].value: (27, 1152)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['LayerNorm_1']['bias'].value: (27, 1152)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['LayerNorm_1']['scale'].value: (27, 1152)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MlpBlock_0']['Dense_0']['bias'].value: (27, 4304)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MlpBlock_0']['Dense_0']['kernel'].value: (27, 1152, 4304)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MlpBlock_0']['Dense_1']['bias'].value: (27, 1152)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MlpBlock_0']['Dense_1']['kernel'].value: (27, 4304, 1152)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MultiHeadDotProductAttention_0']['key']['bias'].value: (27, 16, 72)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MultiHeadDotProductAttention_0']['key']['kernel'].value: (27, 1152, 16, 72)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MultiHeadDotProductAttention_0']['out']['bias'].value: (27, 1152)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MultiHeadDotProductAttention_0']['out']['kernel'].value: (27, 16, 72, 1152)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MultiHeadDotProductAttention_0']['query']['bias'].value: (27, 16, 72)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MultiHeadDotProductAttention_0']['query']['kernel'].value: (27, 1152, 16, 72)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MultiHeadDotProductAttention_0']['value']['bias'].value: (27, 16, 72)@float32
+['PaliGemma']['img']['Transformer']['encoderblock']['MultiHeadDotProductAttention_0']['value']['kernel'].value: (27, 1152, 16, 72)@float32
+['PaliGemma']['img']['embedding']['bias'].value: (1152,)@float32
+['PaliGemma']['img']['embedding']['kernel'].value: (14, 14, 3, 1152)@float32
+['PaliGemma']['img']['head']['bias'].value: (2048,)@float32
+['PaliGemma']['img']['head']['kernel'].value: (1152, 2048)@float32
+['PaliGemma']['img']['pos_embedding'].value: (1, 256, 1152)@float32
+['PaliGemma']['llm']['embedder']['input_embedding'].value: (257152, 2048)@bfloat16
+['PaliGemma']['llm']['final_norm']['scale'].value: (2048,)@bfloat16
+['PaliGemma']['llm']['final_norm_1']['Dense_0']['bias'].value: (3072,)@bfloat16
+['PaliGemma']['llm']['final_norm_1']['Dense_0']['kernel'].value: (1024, 3072)@bfloat16
+['PaliGemma']['llm']['layers']['attn']['attn_vec_einsum']['lora_a'].value: (18, 8, 256, 16)@float32
+['PaliGemma']['llm']['layers']['attn']['attn_vec_einsum']['lora_b'].value: (18, 8, 16, 2048)@float32
+['PaliGemma']['llm']['layers']['attn']['attn_vec_einsum']['w'].value: (18, 8, 256, 2048)@bfloat16
+['PaliGemma']['llm']['layers']['attn']['attn_vec_einsum_1']['lora_a'].value: (18, 8, 256, 32)@float32
+['PaliGemma']['llm']['layers']['attn']['attn_vec_einsum_1']['lora_b'].value: (18, 8, 32, 1024)@float32
+['PaliGemma']['llm']['layers']['attn']['attn_vec_einsum_1']['w'].value: (18, 8, 256, 1024)@bfloat16
+['PaliGemma']['llm']['layers']['attn']['kv_einsum']['lora_a'].value: (18, 2, 1, 2048, 16)@float32
+['PaliGemma']['llm']['layers']['attn']['kv_einsum']['lora_b'].value: (18, 2, 1, 16, 256)@float32
+['PaliGemma']['llm']['layers']['attn']['kv_einsum']['w'].value: (18, 2, 1, 2048, 256)@bfloat16
+['PaliGemma']['llm']['layers']['attn']['kv_einsum_1']['lora_a'].value: (18, 2, 1, 1024, 32)@float32
+['PaliGemma']['llm']['layers']['attn']['kv_einsum_1']['lora_b'].value: (18, 2, 1, 32, 256)@float32
+['PaliGemma']['llm']['layers']['attn']['kv_einsum_1']['w'].value: (18, 2, 1, 1024, 256)@bfloat16
+['PaliGemma']['llm']['layers']['attn']['q_einsum']['lora_a'].value: (18, 8, 2048, 16)@float32
+['PaliGemma']['llm']['layers']['attn']['q_einsum']['lora_b'].value: (18, 8, 16, 256)@float32
+['PaliGemma']['llm']['layers']['attn']['q_einsum']['w'].value: (18, 8, 2048, 256)@bfloat16
+['PaliGemma']['llm']['layers']['attn']['q_einsum_1']['lora_a'].value: (18, 8, 1024, 32)@float32
+['PaliGemma']['llm']['layers']['attn']['q_einsum_1']['lora_b'].value: (18, 8, 32, 256)@float32
+['PaliGemma']['llm']['layers']['attn']['q_einsum_1']['w'].value: (18, 8, 1024, 256)@bfloat16
+['PaliGemma']['llm']['layers']['mlp']['gating_einsum'].value: (18, 2, 2048, 16384)@bfloat16
+['PaliGemma']['llm']['layers']['mlp']['gating_einsum_lora_a'].value: (18, 2, 2048, 16)@float32
+['PaliGemma']['llm']['layers']['mlp']['gating_einsum_lora_b'].value: (18, 2, 16, 16384)@float32
+['PaliGemma']['llm']['layers']['mlp']['linear'].value: (18, 16384, 2048)@bfloat16
+['PaliGemma']['llm']['layers']['mlp']['linear_lora_a'].value: (18, 16384, 16)@float32
+['PaliGemma']['llm']['layers']['mlp']['linear_lora_b'].value: (18, 16, 2048)@float32
+['PaliGemma']['llm']['layers']['mlp_1']['gating_einsum'].value: (18, 2, 1024, 4096)@bfloat16
+['PaliGemma']['llm']['layers']['mlp_1']['gating_einsum_lora_a'].value: (18, 2, 1024, 32)@float32
+['PaliGemma']['llm']['layers']['mlp_1']['gating_einsum_lora_b'].value: (18, 2, 32, 4096)@float32
+['PaliGemma']['llm']['layers']['mlp_1']['linear'].value: (18, 4096, 1024)@bfloat16
+['PaliGemma']['llm']['layers']['mlp_1']['linear_lora_a'].value: (18, 4096, 32)@float32
+['PaliGemma']['llm']['layers']['mlp_1']['linear_lora_b'].value: (18, 32, 1024)@float32
+['PaliGemma']['llm']['layers']['pre_attention_norm']['scale'].value: (18, 2048)@bfloat16
+['PaliGemma']['llm']['layers']['pre_attention_norm_1']['Dense_0']['bias'].value: (18, 3072)@bfloat16
+['PaliGemma']['llm']['layers']['pre_attention_norm_1']['Dense_0']['kernel'].value: (18, 1024, 3072)@bfloat16
+['PaliGemma']['llm']['layers']['pre_ffw_norm']['scale'].value: (18, 2048)@bfloat16
+['PaliGemma']['llm']['layers']['pre_ffw_norm_1']['Dense_0']['bias'].value: (18, 3072)@bfloat16
+['PaliGemma']['llm']['layers']['pre_ffw_norm_1']['Dense_0']['kernel'].value: (18, 1024, 3072)@bfloat16
+['action_in_proj']['bias'].value: (1024,)@float32
+['action_in_proj']['kernel'].value: (32, 1024)@float32
+['action_out_proj']['bias'].value: (32,)@float32
+['action_out_proj']['kernel'].value: (1024, 32)@float32
+['time_mlp_in']['bias'].value: (1024,)@float32
+['time_mlp_in']['kernel'].value: (1024, 1024)@float32
+['time_mlp_out']['bias'].value: (1024,)@float32
+['time_mlp_out']['kernel'].value: (1024, 1024)@float32 (802075:train.py:238)
+16:54:40.241 [I] Progress on: -/10000 rate:- remaining:? elapsed:00:00 postfix:-                  (802075:tqdm_logging.py:154)
+16:56:09.376 [I] Progress on: -/10000 rate:- remaining:? elapsed:01:29 postfix:-                  (802075:tqdm_logging.py:154)
+16:56:19.724 [I] Progress on: 13.0it/10.0kit rate:1.3s/it remaining:3:35:41 elapsed:01:39 postfix:- (802075:tqdm_logging.py:154)
+16:56:29.960 [I] Progress on: 24.0it/10.0kit rate:1.1it/s remaining:2:35:52 elapsed:01:49 postfix:- (802075:tqdm_logging.py:154)
+16:56:40.230 [I] Progress on: 35.0it/10.0kit rate:1.1it/s remaining:2:35:14 elapsed:01:59 postfix:- (802075:tqdm_logging.py:154)
+16:56:50.489 [I] Progress on: 46.0it/10.0kit rate:1.1it/s remaining:2:34:54 elapsed:02:10 postfix:- (802075:tqdm_logging.py:154)
+16:57:00.757 [I] Progress on: 57.0it/10.0kit rate:1.1it/s remaining:2:34:42 elapsed:02:20 postfix:- (802075:tqdm_logging.py:154)
+16:57:11.048 [I] Progress on: 68.0it/10.0kit rate:1.1it/s remaining:2:34:50 elapsed:02:30 postfix:- (802075:tqdm_logging.py:154)
+16:57:21.335 [I] Progress on: 79.0it/10.0kit rate:1.1it/s remaining:2:34:34 elapsed:02:41 postfix:- (802075:tqdm_logging.py:154)
+16:57:31.631 [I] Progress on: 90.0it/10.0kit rate:1.1it/s remaining:2:34:44 elapsed:02:51 postfix:- (802075:tqdm_logging.py:154)
+16:57:42.897 [I] Progress on: 100it/10.0kit rate:1.1it/s remaining:2:34:11 elapsed:03:02 postfix:- (802075:tqdm_logging.py:154)
+16:57:53.321 [I] Progress on: 113it/10.0kit rate:1.1it/s remaining:2:34:04 elapsed:03:13 postfix:- (802075:tqdm_logging.py:154)
+16:58:03.626 [I] Progress on: 124it/10.0kit rate:1.1it/s remaining:2:34:32 elapsed:03:23 postfix:- (802075:tqdm_logging.py:154)
+16:58:13.934 [I] Progress on: 135it/10.0kit rate:1.1it/s remaining:2:34:16 elapsed:03:33 postfix:- (802075:tqdm_logging.py:154)
+16:58:24.232 [I] Progress on: 146it/10.0kit rate:1.1it/s remaining:2:33:41 elapsed:03:43 postfix:- (802075:tqdm_logging.py:154)
+16:58:34.513 [I] Progress on: 157it/10.0kit rate:1.1it/s remaining:2:33:24 elapsed:03:54 postfix:- (802075:tqdm_logging.py:154)
+16:58:44.811 [I] Progress on: 168it/10.0kit rate:1.1it/s remaining:2:33:30 elapsed:04:04 postfix:- (802075:tqdm_logging.py:154)
+16:58:55.111 [I] Progress on: 179it/10.0kit rate:1.1it/s remaining:2:33:18 elapsed:04:14 postfix:- (802075:tqdm_logging.py:154)
+16:59:05.400 [I] Progress on: 190it/10.0kit rate:1.1it/s remaining:2:33:00 elapsed:04:25 postfix:- (802075:tqdm_logging.py:154)
+16:59:16.537 [I] Progress on: 200it/10.0kit rate:1.1it/s remaining:2:32:59 elapsed:04:36 postfix:- (802075:tqdm_logging.py:154)
+16:59:26.948 [I] Progress on: 213it/10.0kit rate:1.1it/s remaining:2:32:08 elapsed:04:46 postfix:- (802075:tqdm_logging.py:154)
+16:59:37.233 [I] Progress on: 224it/10.0kit rate:1.1it/s remaining:2:32:21 elapsed:04:56 postfix:- (802075:tqdm_logging.py:154)
+16:59:47.521 [I] Progress on: 235it/10.0kit rate:1.1it/s remaining:2:32:17 elapsed:05:07 postfix:- (802075:tqdm_logging.py:154)
+16:59:57.828 [I] Progress on: 246it/10.0kit rate:1.1it/s remaining:2:32:24 elapsed:05:17 postfix:- (802075:tqdm_logging.py:154)
+17:00:08.125 [I] Progress on: 257it/10.0kit rate:1.1it/s remaining:2:31:59 elapsed:05:27 postfix:- (802075:tqdm_logging.py:154)
+17:00:18.422 [I] Progress on: 268it/10.0kit rate:1.1it/s remaining:2:32:04 elapsed:05:38 postfix:- (802075:tqdm_logging.py:154)
+17:00:28.722 [I] Progress on: 279it/10.0kit rate:1.1it/s remaining:2:31:40 elapsed:05:48 postfix:- (802075:tqdm_logging.py:154)
+17:00:39.014 [I] Progress on: 290it/10.0kit rate:1.1it/s remaining:2:31:25 elapsed:05:58 postfix:- (802075:tqdm_logging.py:154)
+17:00:50.154 [I] Progress on: 300it/10.0kit rate:1.1it/s remaining:2:31:19 elapsed:06:09 postfix:- (802075:tqdm_logging.py:154)
+17:01:00.577 [I] Progress on: 313it/10.0kit rate:1.1it/s remaining:2:30:45 elapsed:06:20 postfix:- (802075:tqdm_logging.py:154)
+17:01:10.872 [I] Progress on: 324it/10.0kit rate:1.1it/s remaining:2:30:51 elapsed:06:30 postfix:- (802075:tqdm_logging.py:154)
+17:01:21.161 [I] Progress on: 335it/10.0kit rate:1.1it/s remaining:2:30:35 elapsed:06:40 postfix:- (802075:tqdm_logging.py:154)
+17:01:31.453 [I] Progress on: 346it/10.0kit rate:1.1it/s remaining:2:30:29 elapsed:06:51 postfix:- (802075:tqdm_logging.py:154)
+17:01:41.755 [I] Progress on: 357it/10.0kit rate:1.1it/s remaining:2:30:17 elapsed:07:01 postfix:- (802075:tqdm_logging.py:154)
+17:01:52.049 [I] Progress on: 368it/10.0kit rate:1.1it/s remaining:2:30:10 elapsed:07:11 postfix:- (802075:tqdm_logging.py:154)
+17:02:02.354 [I] Progress on: 379it/10.0kit rate:1.1it/s remaining:2:30:13 elapsed:07:22 postfix:- (802075:tqdm_logging.py:154)
+17:02:12.645 [I] Progress on: 390it/10.0kit rate:1.1it/s remaining:2:29:41 elapsed:07:32 postfix:- (802075:tqdm_logging.py:154)
+17:02:23.795 [I] Progress on: 400it/10.0kit rate:1.1it/s remaining:2:29:53 elapsed:07:43 postfix:- (802075:tqdm_logging.py:154)
+17:02:34.224 [I] Progress on: 413it/10.0kit rate:1.1it/s remaining:2:29:40 elapsed:07:53 postfix:- (802075:tqdm_logging.py:154)
+17:02:44.488 [I] Progress on: 424it/10.0kit rate:1.1it/s remaining:2:29:08 elapsed:08:04 postfix:- (802075:tqdm_logging.py:154)
+17:02:54.791 [I] Progress on: 435it/10.0kit rate:1.1it/s remaining:2:29:22 elapsed:08:14 postfix:- (802075:tqdm_logging.py:154)
+17:03:05.086 [I] Progress on: 446it/10.0kit rate:1.1it/s remaining:2:29:09 elapsed:08:24 postfix:- (802075:tqdm_logging.py:154)
+17:03:15.381 [I] Progress on: 457it/10.0kit rate:1.1it/s remaining:2:29:00 elapsed:08:35 postfix:- (802075:tqdm_logging.py:154)
+17:03:25.680 [I] Progress on: 468it/10.0kit rate:1.1it/s remaining:2:28:45 elapsed:08:45 postfix:- (802075:tqdm_logging.py:154)
+17:03:35.979 [I] Progress on: 479it/10.0kit rate:1.1it/s remaining:2:28:42 elapsed:08:55 postfix:- (802075:tqdm_logging.py:154)
+17:03:46.283 [I] Progress on: 490it/10.0kit rate:1.1it/s remaining:2:28:26 elapsed:09:06 postfix:- (802075:tqdm_logging.py:154)
+17:03:57.421 [I] Progress on: 500it/10.0kit rate:1.1it/s remaining:2:28:18 elapsed:09:17 postfix:- (802075:tqdm_logging.py:154)
+17:04:07.856 [I] Progress on: 513it/10.0kit rate:1.1it/s remaining:2:27:49 elapsed:09:27 postfix:- (802075:tqdm_logging.py:154)
+17:04:18.150 [I] Progress on: 524it/10.0kit rate:1.1it/s remaining:2:27:38 elapsed:09:37 postfix:- (802075:tqdm_logging.py:154)
+17:04:28.438 [I] Progress on: 535it/10.0kit rate:1.1it/s remaining:2:27:35 elapsed:09:48 postfix:- (802075:tqdm_logging.py:154)
+17:04:38.742 [I] Progress on: 546it/10.0kit rate:1.1it/s remaining:2:27:23 elapsed:09:58 postfix:- (802075:tqdm_logging.py:154)
+17:04:49.037 [I] Progress on: 557it/10.0kit rate:1.1it/s remaining:2:27:10 elapsed:10:08 postfix:- (802075:tqdm_logging.py:154)
+17:04:59.331 [I] Progress on: 568it/10.0kit rate:1.1it/s remaining:2:26:58 elapsed:10:19 postfix:- (802075:tqdm_logging.py:154)
+17:05:09.626 [I] Progress on: 579it/10.0kit rate:1.1it/s remaining:2:26:44 elapsed:10:29 postfix:- (802075:tqdm_logging.py:154)
+17:05:19.936 [I] Progress on: 590it/10.0kit rate:1.1it/s remaining:2:26:57 elapsed:10:39 postfix:- (802075:tqdm_logging.py:154)
+17:05:31.078 [I] Progress on: 600it/10.0kit rate:1.1it/s remaining:2:26:30 elapsed:10:50 postfix:- (802075:tqdm_logging.py:154)
+17:05:41.492 [I] Progress on: 613it/10.0kit rate:1.1it/s remaining:2:26:12 elapsed:11:01 postfix:- (802075:tqdm_logging.py:154)
+17:05:51.797 [I] Progress on: 624it/10.0kit rate:1.1it/s remaining:2:26:19 elapsed:11:11 postfix:- (802075:tqdm_logging.py:154)
+17:06:02.092 [I] Progress on: 635it/10.0kit rate:1.1it/s remaining:2:26:04 elapsed:11:21 postfix:- (802075:tqdm_logging.py:154)
+17:06:12.394 [I] Progress on: 646it/10.0kit rate:1.1it/s remaining:2:26:02 elapsed:11:32 postfix:- (802075:tqdm_logging.py:154)
+17:06:22.690 [I] Progress on: 657it/10.0kit rate:1.1it/s remaining:2:25:37 elapsed:11:42 postfix:- (802075:tqdm_logging.py:154)
+17:06:32.994 [I] Progress on: 668it/10.0kit rate:1.1it/s remaining:2:25:31 elapsed:11:52 postfix:- (802075:tqdm_logging.py:154)
+17:06:43.307 [I] Progress on: 679it/10.0kit rate:1.1it/s remaining:2:25:37 elapsed:12:03 postfix:- (802075:tqdm_logging.py:154)
+17:06:53.607 [I] Progress on: 690it/10.0kit rate:1.1it/s remaining:2:25:19 elapsed:12:13 postfix:- (802075:tqdm_logging.py:154)
+17:07:04.767 [I] Progress on: 700it/10.0kit rate:1.1it/s remaining:2:25:18 elapsed:12:24 postfix:- (802075:tqdm_logging.py:154)
+17:07:15.191 [I] Progress on: 713it/10.0kit rate:1.1it/s remaining:2:24:37 elapsed:12:34 postfix:- (802075:tqdm_logging.py:154)
+17:07:25.497 [I] Progress on: 724it/10.0kit rate:1.1it/s remaining:2:25:02 elapsed:12:45 postfix:- (802075:tqdm_logging.py:154)
+17:07:35.799 [I] Progress on: 735it/10.0kit rate:1.1it/s remaining:2:24:31 elapsed:12:55 postfix:- (802075:tqdm_logging.py:154)
+17:07:46.101 [I] Progress on: 746it/10.0kit rate:1.1it/s remaining:2:24:34 elapsed:13:05 postfix:- (802075:tqdm_logging.py:154)
+17:07:56.404 [I] Progress on: 757it/10.0kit rate:1.1it/s remaining:2:24:15 elapsed:13:16 postfix:- (802075:tqdm_logging.py:154)
+17:08:06.709 [I] Progress on: 768it/10.0kit rate:1.1it/s remaining:2:24:09 elapsed:13:26 postfix:- (802075:tqdm_logging.py:154)
+17:08:17.011 [I] Progress on: 779it/10.0kit rate:1.1it/s remaining:2:24:00 elapsed:13:36 postfix:- (802075:tqdm_logging.py:154)
+17:08:27.320 [I] Progress on: 790it/10.0kit rate:1.1it/s remaining:2:23:33 elapsed:13:47 postfix:- (802075:tqdm_logging.py:154)
+17:08:38.463 [I] Progress on: 800it/10.0kit rate:1.1it/s remaining:2:23:42 elapsed:13:58 postfix:- (802075:tqdm_logging.py:154)
+17:08:48.903 [I] Progress on: 813it/10.0kit rate:1.1it/s remaining:2:23:27 elapsed:14:08 postfix:- (802075:tqdm_logging.py:154)
+17:08:59.202 [I] Progress on: 824it/10.0kit rate:1.1it/s remaining:2:23:11 elapsed:14:18 postfix:- (802075:tqdm_logging.py:154)
+17:09:09.515 [I] Progress on: 835it/10.0kit rate:1.1it/s remaining:2:23:08 elapsed:14:29 postfix:- (802075:tqdm_logging.py:154)
+17:09:19.821 [I] Progress on: 846it/10.0kit rate:1.1it/s remaining:2:22:52 elapsed:14:39 postfix:- (802075:tqdm_logging.py:154)
+17:09:30.140 [I] Progress on: 857it/10.0kit rate:1.1it/s remaining:2:22:58 elapsed:14:49 postfix:- (802075:tqdm_logging.py:154)
+17:09:40.449 [I] Progress on: 868it/10.0kit rate:1.1it/s remaining:2:22:33 elapsed:15:00 postfix:- (802075:tqdm_logging.py:154)
+17:09:50.760 [I] Progress on: 879it/10.0kit rate:1.1it/s remaining:2:22:34 elapsed:15:10 postfix:- (802075:tqdm_logging.py:154)
+17:10:01.073 [I] Progress on: 890it/10.0kit rate:1.1it/s remaining:2:22:10 elapsed:15:20 postfix:- (802075:tqdm_logging.py:154)
+17:10:12.221 [I] Progress on: 900it/10.0kit rate:1.1it/s remaining:2:21:50 elapsed:15:31 postfix:- (802075:tqdm_logging.py:154)
+17:10:22.679 [I] Progress on: 913it/10.0kit rate:1.1it/s remaining:2:21:50 elapsed:15:42 postfix:- (802075:tqdm_logging.py:154)
+17:10:32.980 [I] Progress on: 924it/10.0kit rate:1.1it/s remaining:2:21:32 elapsed:15:52 postfix:- (802075:tqdm_logging.py:154)
+17:10:43.278 [I] Progress on: 935it/10.0kit rate:1.1it/s remaining:2:21:23 elapsed:16:03 postfix:- (802075:tqdm_logging.py:154)
+17:10:53.580 [I] Progress on: 946it/10.0kit rate:1.1it/s remaining:2:21:28 elapsed:16:13 postfix:- (802075:tqdm_logging.py:154)
+17:11:03.893 [I] Progress on: 957it/10.0kit rate:1.1it/s remaining:2:21:25 elapsed:16:23 postfix:- (802075:tqdm_logging.py:154)
+17:11:14.191 [I] Progress on: 968it/10.0kit rate:1.1it/s remaining:2:21:04 elapsed:16:33 postfix:- (802075:tqdm_logging.py:154)
+17:11:24.483 [I] Progress on: 979it/10.0kit rate:1.1it/s remaining:2:20:41 elapsed:16:44 postfix:- (802075:tqdm_logging.py:154)
+17:11:34.777 [I] Progress on: 990it/10.0kit rate:1.1it/s remaining:2:20:44 elapsed:16:54 postfix:- (802075:tqdm_logging.py:154)
+17:11:45.931 [I] Progress on: 1.00kit/10.0kit rate:1.1it/s remaining:2:20:40 elapsed:17:05 postfix:- (802075:tqdm_logging.py:154)
+17:11:56.355 [I] Progress on: 1.01kit/10.0kit rate:1.1it/s remaining:2:20:02 elapsed:17:16 postfix:- (802075:tqdm_logging.py:154)
+17:12:06.657 [I] Progress on: 1.02kit/10.0kit rate:1.1it/s remaining:2:20:10 elapsed:17:26 postfix:- (802075:tqdm_logging.py:154)
+17:12:16.960 [I] Progress on: 1.03kit/10.0kit rate:1.1it/s remaining:2:19:51 elapsed:17:36 postfix:- (802075:tqdm_logging.py:154)
+17:12:27.265 [I] Progress on: 1.05kit/10.0kit rate:1.1it/s remaining:2:19:47 elapsed:17:47 postfix:- (802075:tqdm_logging.py:154)
+17:12:37.571 [I] Progress on: 1.06kit/10.0kit rate:1.1it/s remaining:2:19:35 elapsed:17:57 postfix:- (802075:tqdm_logging.py:154)
+17:12:47.868 [I] Progress on: 1.07kit/10.0kit rate:1.1it/s remaining:2:19:23 elapsed:18:07 postfix:- (802075:tqdm_logging.py:154)
+17:12:58.169 [I] Progress on: 1.08kit/10.0kit rate:1.1it/s remaining:2:19:11 elapsed:18:17 postfix:- (802075:tqdm_logging.py:154)
+17:13:08.469 [I] Progress on: 1.09kit/10.0kit rate:1.1it/s remaining:2:18:53 elapsed:18:28 postfix:- (802075:tqdm_logging.py:154)
+17:13:19.635 [I] Progress on: 1.10kit/10.0kit rate:1.1it/s remaining:2:19:11 elapsed:18:39 postfix:- (802075:tqdm_logging.py:154)
+17:13:30.061 [I] Progress on: 1.11kit/10.0kit rate:1.1it/s remaining:2:18:18 elapsed:18:49 postfix:- (802075:tqdm_logging.py:154)
+17:13:40.358 [I] Progress on: 1.12kit/10.0kit rate:1.1it/s remaining:2:18:25 elapsed:19:00 postfix:- (802075:tqdm_logging.py:154)
+17:13:50.668 [I] Progress on: 1.14kit/10.0kit rate:1.1it/s remaining:2:18:27 elapsed:19:10 postfix:- (802075:tqdm_logging.py:154)
+17:14:00.970 [I] Progress on: 1.15kit/10.0kit rate:1.1it/s remaining:2:18:08 elapsed:19:20 postfix:- (802075:tqdm_logging.py:154)
+17:14:11.286 [I] Progress on: 1.16kit/10.0kit rate:1.1it/s remaining:2:18:02 elapsed:19:31 postfix:- (802075:tqdm_logging.py:154)
+17:14:21.594 [I] Progress on: 1.17kit/10.0kit rate:1.1it/s remaining:2:17:50 elapsed:19:41 postfix:- (802075:tqdm_logging.py:154)
+17:14:31.902 [I] Progress on: 1.18kit/10.0kit rate:1.1it/s remaining:2:17:43 elapsed:19:51 postfix:- (802075:tqdm_logging.py:154)
+17:14:42.213 [I] Progress on: 1.19kit/10.0kit rate:1.1it/s remaining:2:17:34 elapsed:20:01 postfix:- (802075:tqdm_logging.py:154)
+17:14:53.358 [I] Progress on: 1.20kit/10.0kit rate:1.1it/s remaining:2:17:21 elapsed:20:13 postfix:- (802075:tqdm_logging.py:154)
+17:15:03.794 [I] Progress on: 1.21kit/10.0kit rate:1.1it/s remaining:2:17:08 elapsed:20:23 postfix:- (802075:tqdm_logging.py:154)
+17:15:14.088 [I] Progress on: 1.22kit/10.0kit rate:1.1it/s remaining:2:16:56 elapsed:20:33 postfix:- (802075:tqdm_logging.py:154)
+17:15:24.402 [I] Progress on: 1.24kit/10.0kit rate:1.1it/s remaining:2:16:59 elapsed:20:44 postfix:- (802075:tqdm_logging.py:154)
+17:15:35.174 [I] Progress on: 1.25kit/10.0kit rate:1.1s/it remaining:2:37:47 elapsed:20:54 postfix:- (802075:tqdm_logging.py:154)
+17:15:45.929 [I] Progress on: 1.26kit/10.0kit rate:1.1it/s remaining:2:16:26 elapsed:21:05 postfix:- (802075:tqdm_logging.py:154)
+17:15:56.232 [I] Progress on: 1.27kit/10.0kit rate:1.1it/s remaining:2:16:15 elapsed:21:15 postfix:- (802075:tqdm_logging.py:154)
+17:16:06.525 [I] Progress on: 1.28kit/10.0kit rate:1.1it/s remaining:2:15:52 elapsed:21:26 postfix:- (802075:tqdm_logging.py:154)
+17:16:16.837 [I] Progress on: 1.29kit/10.0kit rate:1.1it/s remaining:2:15:57 elapsed:21:36 postfix:- (802075:tqdm_logging.py:154)
+17:16:27.050 [I] Progress on: 1.30kit/10.0kit rate:1.1it/s remaining:2:15:43 elapsed:21:46 postfix:- (802075:tqdm_logging.py:154)
+17:16:37.486 [I] Progress on: 1.31kit/10.0kit rate:1.1it/s remaining:2:15:33 elapsed:21:57 postfix:- (802075:tqdm_logging.py:154)
+17:16:47.780 [I] Progress on: 1.32kit/10.0kit rate:1.1it/s remaining:2:15:18 elapsed:22:07 postfix:- (802075:tqdm_logging.py:154)
+17:16:58.076 [I] Progress on: 1.33kit/10.0kit rate:1.1it/s remaining:2:15:08 elapsed:22:17 postfix:- (802075:tqdm_logging.py:154)
+17:17:08.384 [I] Progress on: 1.35kit/10.0kit rate:1.1it/s remaining:2:15:07 elapsed:22:28 postfix:- (802075:tqdm_logging.py:154)
+17:17:18.678 [I] Progress on: 1.36kit/10.0kit rate:1.1it/s remaining:2:14:48 elapsed:22:38 postfix:- (802075:tqdm_logging.py:154)
+17:17:28.977 [I] Progress on: 1.37kit/10.0kit rate:1.1it/s remaining:2:14:40 elapsed:22:48 postfix:- (802075:tqdm_logging.py:154)
+17:17:39.267 [I] Progress on: 1.38kit/10.0kit rate:1.1it/s remaining:2:14:16 elapsed:22:59 postfix:- (802075:tqdm_logging.py:154)
+17:17:49.553 [I] Progress on: 1.39kit/10.0kit rate:1.1it/s remaining:2:14:09 elapsed:23:09 postfix:- (802075:tqdm_logging.py:154)
+17:18:00.696 [I] Progress on: 1.40kit/10.0kit rate:1.1it/s remaining:2:14:03 elapsed:23:20 postfix:- (802075:tqdm_logging.py:154)
+17:18:11.128 [I] Progress on: 1.41kit/10.0kit rate:1.1it/s remaining:2:13:45 elapsed:23:30 postfix:- (802075:tqdm_logging.py:154)
+17:18:21.431 [I] Progress on: 1.42kit/10.0kit rate:1.1it/s remaining:2:13:46 elapsed:23:41 postfix:- (802075:tqdm_logging.py:154)
+17:18:31.725 [I] Progress on: 1.44kit/10.0kit rate:1.1it/s remaining:2:13:29 elapsed:23:51 postfix:- (802075:tqdm_logging.py:154)
+17:18:42.026 [I] Progress on: 1.45kit/10.0kit rate:1.1it/s remaining:2:13:28 elapsed:24:01 postfix:- (802075:tqdm_logging.py:154)
+17:18:52.325 [I] Progress on: 1.46kit/10.0kit rate:1.1it/s remaining:2:13:25 elapsed:24:12 postfix:- (802075:tqdm_logging.py:154)
+17:19:02.616 [I] Progress on: 1.47kit/10.0kit rate:1.1it/s remaining:2:13:11 elapsed:24:22 postfix:- (802075:tqdm_logging.py:154)
+17:19:12.918 [I] Progress on: 1.48kit/10.0kit rate:1.1it/s remaining:2:13:02 elapsed:24:32 postfix:- (802075:tqdm_logging.py:154)
+17:19:23.219 [I] Progress on: 1.49kit/10.0kit rate:1.1it/s remaining:2:12:44 elapsed:24:42 postfix:- (802075:tqdm_logging.py:154)
+17:19:34.363 [I] Progress on: 1.50kit/10.0kit rate:1.1it/s remaining:2:12:29 elapsed:24:54 postfix:- (802075:tqdm_logging.py:154)
+17:19:44.806 [I] Progress on: 1.51kit/10.0kit rate:1.1it/s remaining:2:12:32 elapsed:25:04 postfix:- (802075:tqdm_logging.py:154)
+17:19:55.116 [I] Progress on: 1.52kit/10.0kit rate:1.1it/s remaining:2:12:42 elapsed:25:14 postfix:- (802075:tqdm_logging.py:154)
+17:20:05.429 [I] Progress on: 1.53kit/10.0kit rate:1.1it/s remaining:2:12:23 elapsed:25:25 postfix:- (802075:tqdm_logging.py:154)
+17:20:15.722 [I] Progress on: 1.55kit/10.0kit rate:1.1it/s remaining:2:11:58 elapsed:25:35 postfix:- (802075:tqdm_logging.py:154)
+17:20:26.035 [I] Progress on: 1.56kit/10.0kit rate:1.1it/s remaining:2:11:53 elapsed:25:45 postfix:- (802075:tqdm_logging.py:154)
+17:20:36.320 [I] Progress on: 1.57kit/10.0kit rate:1.1it/s remaining:2:11:26 elapsed:25:56 postfix:- (802075:tqdm_logging.py:154)
+17:20:46.620 [I] Progress on: 1.58kit/10.0kit rate:1.1it/s remaining:2:11:23 elapsed:26:06 postfix:- (802075:tqdm_logging.py:154)
+17:20:56.918 [I] Progress on: 1.59kit/10.0kit rate:1.1it/s remaining:2:11:07 elapsed:26:16 postfix:- (802075:tqdm_logging.py:154)
+17:21:08.046 [I] Progress on: 1.60kit/10.0kit rate:1.1it/s remaining:2:10:58 elapsed:26:27 postfix:- (802075:tqdm_logging.py:154)
+17:21:18.475 [I] Progress on: 1.61kit/10.0kit rate:1.1it/s remaining:2:10:36 elapsed:26:38 postfix:- (802075:tqdm_logging.py:154)
+17:21:28.772 [I] Progress on: 1.62kit/10.0kit rate:1.1it/s remaining:2:10:39 elapsed:26:48 postfix:- (802075:tqdm_logging.py:154)
+17:21:39.078 [I] Progress on: 1.64kit/10.0kit rate:1.1it/s remaining:2:10:36 elapsed:26:58 postfix:- (802075:tqdm_logging.py:154)
+17:21:49.378 [I] Progress on: 1.65kit/10.0kit rate:1.1it/s remaining:2:10:17 elapsed:27:09 postfix:- (802075:tqdm_logging.py:154)
+17:21:59.681 [I] Progress on: 1.66kit/10.0kit rate:1.1it/s remaining:2:10:14 elapsed:27:19 postfix:- (802075:tqdm_logging.py:154)
+17:22:09.995 [I] Progress on: 1.67kit/10.0kit rate:1.1it/s remaining:2:10:01 elapsed:27:29 postfix:- (802075:tqdm_logging.py:154)
+17:22:20.296 [I] Progress on: 1.68kit/10.0kit rate:1.1it/s remaining:2:09:57 elapsed:27:40 postfix:- (802075:tqdm_logging.py:154)
+17:22:30.598 [I] Progress on: 1.69kit/10.0kit rate:1.1it/s remaining:2:09:42 elapsed:27:50 postfix:- (802075:tqdm_logging.py:154)
+17:22:41.743 [I] Progress on: 1.70kit/10.0kit rate:1.1it/s remaining:2:09:26 elapsed:28:01 postfix:- (802075:tqdm_logging.py:154)
+17:22:52.184 [I] Progress on: 1.71kit/10.0kit rate:1.1it/s remaining:2:09:23 elapsed:28:11 postfix:- (802075:tqdm_logging.py:154)
+17:23:02.514 [I] Progress on: 1.72kit/10.0kit rate:1.1it/s remaining:2:09:39 elapsed:28:22 postfix:- (802075:tqdm_logging.py:154)
+17:23:12.817 [I] Progress on: 1.74kit/10.0kit rate:1.1it/s remaining:2:09:04 elapsed:28:32 postfix:- (802075:tqdm_logging.py:154)
+17:23:23.128 [I] Progress on: 1.75kit/10.0kit rate:1.1it/s remaining:2:08:57 elapsed:28:42 postfix:- (802075:tqdm_logging.py:154)
+17:23:33.417 [I] Progress on: 1.76kit/10.0kit rate:1.1it/s remaining:2:08:25 elapsed:28:53 postfix:- (802075:tqdm_logging.py:154)
+17:23:43.719 [I] Progress on: 1.77kit/10.0kit rate:1.1it/s remaining:2:08:26 elapsed:29:03 postfix:- (802075:tqdm_logging.py:154)
+17:23:54.021 [I] Progress on: 1.78kit/10.0kit rate:1.1it/s remaining:2:08:24 elapsed:29:13 postfix:- (802075:tqdm_logging.py:154)
+17:24:04.323 [I] Progress on: 1.79kit/10.0kit rate:1.1it/s remaining:2:08:16 elapsed:29:24 postfix:- (802075:tqdm_logging.py:154)
+17:24:15.471 [I] Progress on: 1.80kit/10.0kit rate:1.1it/s remaining:2:07:59 elapsed:29:35 postfix:- (802075:tqdm_logging.py:154)
+17:24:25.902 [I] Progress on: 1.81kit/10.0kit rate:1.1it/s remaining:2:07:41 elapsed:29:45 postfix:- (802075:tqdm_logging.py:154)
+17:24:36.207 [I] Progress on: 1.82kit/10.0kit rate:1.1it/s remaining:2:07:45 elapsed:29:55 postfix:- (802075:tqdm_logging.py:154)
+17:24:46.493 [I] Progress on: 1.83kit/10.0kit rate:1.1it/s remaining:2:07:11 elapsed:30:06 postfix:- (802075:tqdm_logging.py:154)
+17:24:56.791 [I] Progress on: 1.85kit/10.0kit rate:1.1it/s remaining:2:07:25 elapsed:30:16 postfix:- (802075:tqdm_logging.py:154)
+17:25:07.090 [I] Progress on: 1.86kit/10.0kit rate:1.1it/s remaining:2:07:02 elapsed:30:26 postfix:- (802075:tqdm_logging.py:154)
+17:25:17.384 [I] Progress on: 1.87kit/10.0kit rate:1.1it/s remaining:2:06:44 elapsed:30:37 postfix:- (802075:tqdm_logging.py:154)
+17:25:27.674 [I] Progress on: 1.88kit/10.0kit rate:1.1it/s remaining:2:06:39 elapsed:30:47 postfix:- (802075:tqdm_logging.py:154)
+17:25:37.946 [I] Progress on: 1.89kit/10.0kit rate:1.1it/s remaining:2:06:03 elapsed:30:57 postfix:- (802075:tqdm_logging.py:154)
+17:25:49.095 [I] Progress on: 1.90kit/10.0kit rate:1.1it/s remaining:2:06:31 elapsed:31:08 postfix:- (802075:tqdm_logging.py:154)
+17:25:59.531 [I] Progress on: 1.91kit/10.0kit rate:1.1it/s remaining:2:05:57 elapsed:31:19 postfix:- (802075:tqdm_logging.py:154)
+17:26:09.823 [I] Progress on: 1.92kit/10.0kit rate:1.1it/s remaining:2:05:54 elapsed:31:29 postfix:- (802075:tqdm_logging.py:154)
+17:26:20.108 [I] Progress on: 1.94kit/10.0kit rate:1.1it/s remaining:2:05:38 elapsed:31:39 postfix:- (802075:tqdm_logging.py:154)
+17:26:30.397 [I] Progress on: 1.95kit/10.0kit rate:1.1it/s remaining:2:05:32 elapsed:31:50 postfix:- (802075:tqdm_logging.py:154)
+17:26:40.696 [I] Progress on: 1.96kit/10.0kit rate:1.1it/s remaining:2:05:33 elapsed:32:00 postfix:- (802075:tqdm_logging.py:154)
+17:26:50.985 [I] Progress on: 1.97kit/10.0kit rate:1.1it/s remaining:2:05:00 elapsed:32:10 postfix:- (802075:tqdm_logging.py:154)
+17:27:01.278 [I] Progress on: 1.98kit/10.0kit rate:1.1it/s remaining:2:05:05 elapsed:32:21 postfix:- (802075:tqdm_logging.py:154)
+17:27:11.582 [I] Progress on: 1.99kit/10.0kit rate:1.1it/s remaining:2:05:08 elapsed:32:31 postfix:- (802075:tqdm_logging.py:154)
+17:27:22.720 [I] Progress on: 2.00kit/10.0kit rate:1.1it/s remaining:2:04:42 elapsed:32:42 postfix:- (802075:tqdm_logging.py:154)
+17:27:33.142 [I] Progress on: 2.01kit/10.0kit rate:1.1it/s remaining:2:04:24 elapsed:32:52 postfix:- (802075:tqdm_logging.py:154)
+17:27:43.440 [I] Progress on: 2.02kit/10.0kit rate:1.1it/s remaining:2:04:26 elapsed:33:03 postfix:- (802075:tqdm_logging.py:154)
+17:27:53.744 [I] Progress on: 2.04kit/10.0kit rate:1.1it/s remaining:2:04:37 elapsed:33:13 postfix:- (802075:tqdm_logging.py:154)
+17:28:04.052 [I] Progress on: 2.05kit/10.0kit rate:1.1it/s remaining:2:04:24 elapsed:33:23 postfix:- (802075:tqdm_logging.py:154)
+17:28:14.346 [I] Progress on: 2.06kit/10.0kit rate:1.1it/s remaining:2:03:55 elapsed:33:34 postfix:- (802075:tqdm_logging.py:154)
+17:28:24.650 [I] Progress on: 2.07kit/10.0kit rate:1.1it/s remaining:2:03:49 elapsed:33:44 postfix:- (802075:tqdm_logging.py:154)
+17:28:34.944 [I] Progress on: 2.08kit/10.0kit rate:1.1it/s remaining:2:03:24 elapsed:33:54 postfix:- (802075:tqdm_logging.py:154)
+17:28:45.244 [I] Progress on: 2.09kit/10.0kit rate:1.1it/s remaining:2:03:23 elapsed:34:05 postfix:- (802075:tqdm_logging.py:154)
+17:28:56.374 [I] Progress on: 2.10kit/10.0kit rate:1.1it/s remaining:2:03:08 elapsed:34:16 postfix:- (802075:tqdm_logging.py:154)
+17:29:06.787 [I] Progress on: 2.11kit/10.0kit rate:1.1it/s remaining:2:02:45 elapsed:34:26 postfix:- (802075:tqdm_logging.py:154)
+17:29:17.088 [I] Progress on: 2.12kit/10.0kit rate:1.1it/s remaining:2:02:54 elapsed:34:36 postfix:- (802075:tqdm_logging.py:154)
+17:29:27.388 [I] Progress on: 2.13kit/10.0kit rate:1.1it/s remaining:2:02:52 elapsed:34:47 postfix:- (802075:tqdm_logging.py:154)
+17:29:37.691 [I] Progress on: 2.15kit/10.0kit rate:1.1it/s remaining:2:02:35 elapsed:34:57 postfix:- (802075:tqdm_logging.py:154)
+17:29:47.980 [I] Progress on: 2.16kit/10.0kit rate:1.1it/s remaining:2:02:08 elapsed:35:07 postfix:- (802075:tqdm_logging.py:154)
+17:29:58.264 [I] Progress on: 2.17kit/10.0kit rate:1.1it/s remaining:2:02:09 elapsed:35:18 postfix:- (802075:tqdm_logging.py:154)
+17:30:08.575 [I] Progress on: 2.18kit/10.0kit rate:1.1it/s remaining:2:02:04 elapsed:35:28 postfix:- (802075:tqdm_logging.py:154)
+17:30:18.863 [I] Progress on: 2.19kit/10.0kit rate:1.1it/s remaining:2:01:42 elapsed:35:38 postfix:- (802075:tqdm_logging.py:154)
+17:30:30.002 [I] Progress on: 2.20kit/10.0kit rate:1.1it/s remaining:2:01:41 elapsed:35:49 postfix:- (802075:tqdm_logging.py:154)
+17:30:40.412 [I] Progress on: 2.21kit/10.0kit rate:1.1it/s remaining:2:01:01 elapsed:36:00 postfix:- (802075:tqdm_logging.py:154)
+17:30:50.708 [I] Progress on: 2.22kit/10.0kit rate:1.1it/s remaining:2:01:21 elapsed:36:10 postfix:- (802075:tqdm_logging.py:154)
+17:31:00.999 [I] Progress on: 2.23kit/10.0kit rate:1.1it/s remaining:2:01:00 elapsed:36:20 postfix:- (802075:tqdm_logging.py:154)
+17:31:11.299 [I] Progress on: 2.25kit/10.0kit rate:1.1it/s remaining:2:00:56 elapsed:36:31 postfix:- (802075:tqdm_logging.py:154)
+17:31:21.596 [I] Progress on: 2.26kit/10.0kit rate:1.1it/s remaining:2:00:42 elapsed:36:41 postfix:- (802075:tqdm_logging.py:154)
+17:31:31.883 [I] Progress on: 2.27kit/10.0kit rate:1.1it/s remaining:2:00:32 elapsed:36:51 postfix:- (802075:tqdm_logging.py:154)
+17:31:42.188 [I] Progress on: 2.28kit/10.0kit rate:1.1it/s remaining:2:00:40 elapsed:37:01 postfix:- (802075:tqdm_logging.py:154)
+17:31:52.482 [I] Progress on: 2.29kit/10.0kit rate:1.1it/s remaining:2:00:07 elapsed:37:12 postfix:- (802075:tqdm_logging.py:154)
+17:32:03.624 [I] Progress on: 2.30kit/10.0kit rate:1.1it/s remaining:2:00:12 elapsed:37:23 postfix:- (802075:tqdm_logging.py:154)
+17:32:14.051 [I] Progress on: 2.31kit/10.0kit rate:1.1it/s remaining:1:59:42 elapsed:37:33 postfix:- (802075:tqdm_logging.py:154)
+17:32:24.346 [I] Progress on: 2.32kit/10.0kit rate:1.1it/s remaining:1:59:47 elapsed:37:44 postfix:- (802075:tqdm_logging.py:154)
+17:32:34.655 [I] Progress on: 2.33kit/10.0kit rate:1.1it/s remaining:1:59:43 elapsed:37:54 postfix:- (802075:tqdm_logging.py:154)
+17:32:44.954 [I] Progress on: 2.35kit/10.0kit rate:1.1it/s remaining:1:59:19 elapsed:38:04 postfix:- (802075:tqdm_logging.py:154)
+17:32:55.266 [I] Progress on: 2.36kit/10.0kit rate:1.1it/s remaining:1:59:37 elapsed:38:15 postfix:- (802075:tqdm_logging.py:154)
+17:33:05.575 [I] Progress on: 2.37kit/10.0kit rate:1.1it/s remaining:1:59:22 elapsed:38:25 postfix:- (802075:tqdm_logging.py:154)
+17:33:15.863 [I] Progress on: 2.38kit/10.0kit rate:1.1it/s remaining:1:58:49 elapsed:38:35 postfix:- (802075:tqdm_logging.py:154)
+17:33:26.167 [I] Progress on: 2.39kit/10.0kit rate:1.1it/s remaining:1:58:49 elapsed:38:45 postfix:- (802075:tqdm_logging.py:154)
+17:33:37.305 [I] Progress on: 2.40kit/10.0kit rate:1.1it/s remaining:1:58:40 elapsed:38:57 postfix:- (802075:tqdm_logging.py:154)
+17:33:47.719 [I] Progress on: 2.41kit/10.0kit rate:1.1it/s remaining:1:58:08 elapsed:39:07 postfix:- (802075:tqdm_logging.py:154)
+17:33:58.013 [I] Progress on: 2.42kit/10.0kit rate:1.1it/s remaining:1:58:07 elapsed:39:17 postfix:- (802075:tqdm_logging.py:154)
+17:34:08.294 [I] Progress on: 2.44kit/10.0kit rate:1.1it/s remaining:1:57:51 elapsed:39:28 postfix:- (802075:tqdm_logging.py:154)
+17:34:18.593 [I] Progress on: 2.45kit/10.0kit rate:1.1it/s remaining:1:57:52 elapsed:39:38 postfix:- (802075:tqdm_logging.py:154)
+17:34:28.890 [I] Progress on: 2.46kit/10.0kit rate:1.1it/s remaining:1:57:40 elapsed:39:48 postfix:- (802075:tqdm_logging.py:154)
+17:34:39.200 [I] Progress on: 2.47kit/10.0kit rate:1.1it/s remaining:1:57:38 elapsed:39:58 postfix:- (802075:tqdm_logging.py:154)
+17:34:44.795 [I] Progress on: 2.47kit/10.0kit rate:1.1it/s remaining:1:57:13 elapsed:40:04 postfix:- (802075:tqdm_logging.py:154)
+Step 0: grad_norm=0.2937, loss=0.0364, param_norm=1803.7705
+Step 100: grad_norm=0.3551, loss=0.0391, param_norm=1803.7704
+Step 200: grad_norm=0.2071, loss=0.0316, param_norm=1803.7706
+Step 300: grad_norm=0.1632, loss=0.0262, param_norm=1803.7712
+Step 400: grad_norm=0.1452, loss=0.0206, param_norm=1803.7728
+Step 500: grad_norm=0.1361, loss=0.0190, param_norm=1803.7747
+Step 600: grad_norm=0.1390, loss=0.0166, param_norm=1803.7778
+Step 700: grad_norm=0.1201, loss=0.0160, param_norm=1803.7809
+Step 800: grad_norm=0.1064, loss=0.0145, param_norm=1803.7853
+Step 900: grad_norm=0.1072, loss=0.0139, param_norm=1803.7904
+Step 1000: grad_norm=0.0878, loss=0.0131, param_norm=1803.7965
+Step 1100: grad_norm=0.0870, loss=0.0122, param_norm=1803.8036
+Step 1200: grad_norm=0.0860, loss=0.0127, param_norm=1803.8105
+Step 1300: grad_norm=0.0841, loss=0.0117, param_norm=1803.8177
+Step 1400: grad_norm=0.0797, loss=0.0111, param_norm=1803.8250
+Step 1500: grad_norm=0.0757, loss=0.0105, param_norm=1803.8315
+Step 1600: grad_norm=0.0699, loss=0.0104, param_norm=1803.8387
+Step 1700: grad_norm=0.0710, loss=0.0099, param_norm=1803.8451
+Step 1800: grad_norm=0.0641, loss=0.0087, param_norm=1803.8512
+Step 1900: grad_norm=0.0708, loss=0.0087, param_norm=1803.8584
+Step 2000: grad_norm=0.0608, loss=0.0082, param_norm=1803.8652
+Step 2100: grad_norm=0.0612, loss=0.0082, param_norm=1803.8718
+Step 2200: grad_norm=0.0632, loss=0.0079, param_norm=1803.8784
+Step 2300: grad_norm=0.0584, loss=0.0072, param_norm=1803.8850
+Step 2400: grad_norm=0.0560, loss=0.0073, param_norm=1803.8915
+Traceback (most recent call last):
+  File "/workspace/openpi_experiments/amd_openpi_chip_approach_10k_bs16/run_training.py", line 79, in <module>
+    main()
+  File "/workspace/openpi_experiments/amd_openpi_chip_approach_10k_bs16/run_training.py", line 51, in main
+    train.main(cfg)
+  File "/workspace/openpi/scripts/train.py", line 261, in main
+    train_state, info = ptrain_step(train_rng, train_state, batch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pyenv/versions/3.11.13/lib/python3.11/site-packages/flax/nnx/variablelib.py", line 887, in _variable_state_unflatten
+    def _variable_state_unflatten(
+
+KeyboardInterrupt

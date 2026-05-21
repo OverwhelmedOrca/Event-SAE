@@ -29,6 +29,8 @@ the intervention hook (k) are backbone-specific. Per-backbone guides:
 
 - **openVLA** — [docs/openvla.md](docs/openvla.md)
 - **openpi (π₀.₅)** — [docs/openpi.md](docs/openpi.md)
+- **openpi on AMD MI300X** —
+  [amd_mi300x_report.md](amd_mi300x_report.md)
 
 Each guide includes installation, the full pipeline (steps a–k),
 pretrained SAE checkpoints from the paper (on the Hugging Face Hub),

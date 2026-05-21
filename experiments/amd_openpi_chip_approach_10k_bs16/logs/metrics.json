@@ -1,0 +1,19 @@
+{
+  "status": "stopped_by_user_after_validation",
+  "config": "pi05_trossen_solo_chip_lora",
+  "exp_name": "amd_chip_approach_10k_bs16",
+  "batch_size": 16,
+  "num_train_steps": 10000,
+  "checkpoint_dir": "/workspace/openpi/checkpoints/pi05_trossen_solo_chip_lora/amd_chip_approach_10k_bs16",
+  "assets_dirs": "/workspace/openpi/assets/pi05_trossen_solo_chip_lora",
+  "start_time_unix": 1779382407.5831378,
+  "end_time_unix": 1779384902.7163377,
+  "duration_seconds": 2495.133199930191,
+  "duration_minutes": 41.58555333216985,
+  "last_logged_step": 2400,
+  "last_logged_loss": 0.0073,
+  "observed_iteration_speed": "about 1.1 steps/sec",
+  "observed_samples_per_second": "about 17.6 samples/sec at batch size 16",
+  "checkpoint_written": false,
+  "checkpoint_note": "The running config had save_interval=10000, so stopping at ~2470 steps did not produce a checkpoint."
+}

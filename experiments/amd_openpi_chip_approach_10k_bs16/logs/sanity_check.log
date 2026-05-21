@@ -1,0 +1,15 @@
+WARNING:root:'torchcodec' is not available in your platform, falling back to 'pyav' as a default decoder
+/pyenv/versions/3.11.13/lib/python3.11/site-packages/torchvision/io/_video_deprecation_warning.py:5: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
+  warnings.warn(
+config=pi05_trossen_solo_chip_lora
+exp_name=amd_chip_approach_10k_bs16
+batch_size=16
+num_train_steps=10000
+dataset_episodes=100
+dataset_frames=19946
+jax_devices=[RocmDevice(id=0)]
+assets_dirs=/workspace/openpi/assets/pi05_trossen_solo_chip_lora
+checkpoint_dir=/workspace/openpi/checkpoints/pi05_trossen_solo_chip_lora/amd_chip_approach_10k_bs16
+batch_actions_shape=(16, 50, 32)
+state_shape=(16, 32)
+image_keys=['base_0_rgb', 'left_wrist_0_rgb', 'right_wrist_0_rgb']

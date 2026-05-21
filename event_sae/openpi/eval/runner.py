@@ -14,6 +14,7 @@ Pared down from openpi-mech's `SAE/raw_baseline/run_eval.py` (664 →
 from __future__ import annotations
 
 import collections
+import contextlib
 import csv
 import datetime as dt
 import json
@@ -149,6 +150,27 @@ def _parse_layer_indices(raw: list[int] | str | None) -> list[int] | None:
     return [int(v) for v in raw]
 
 
+@contextlib.contextmanager
+def _libero_legacy_torch_load():
+    """LIBERO init-state files are trusted local benchmark assets saved
+    before PyTorch 2.6 changed ``torch.load`` to default to
+    ``weights_only=True``.
+    """
+    import torch
+
+    original_load = torch.load
+
+    def _load_with_legacy_default(*args, **kwargs):
+        kwargs.setdefault("weights_only", False)
+        return original_load(*args, **kwargs)
+
+    torch.load = _load_with_legacy_default
+    try:
+        yield
+    finally:
+        torch.load = original_load
+
+
 def eval_libero(cfg: RunConfig, *, config_path: Path, libero_root: Path) -> EvalResult:
     prepare_libero_env(cfg.libero, libero_root=libero_root)
 
@@ -247,7 +269,8 @@ def eval_libero(cfg: RunConfig, *, config_path: Path, libero_root: Path) -> Eval
     try:
         for task_id in tqdm.tqdm(task_ids, desc="tasks"):
             task = task_suite.get_task(task_id)
-            initial_states = task_suite.get_task_init_states(task_id)
+            with _libero_legacy_torch_load():
+                initial_states = task_suite.get_task_init_states(task_id)
             env, task_description = make_libero_env(task, cfg.env.resolution, cfg.env.seed)
 
             for episode_idx in tqdm.tqdm(range(cfg.env.num_trials_per_task), desc=f"task {task_id}", leave=False):
