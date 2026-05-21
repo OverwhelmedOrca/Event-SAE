@@ -142,3 +142,27 @@ Checkpoint result:
 - Reason: `save_interval=10000`; OpenPI would save at the final 10k step, not at the stopped 2.47k point.
 - The checkpoint directory existed but contained no checkpoint files:
   `/workspace/openpi/checkpoints/pi05_trossen_solo_chip_lora/amd_chip_approach_10k_bs16`
+
+## 2026-05-21 - Progress Recheck
+
+The AMD droplet/container was checked again after the training process had been interrupted.
+
+Commands inspected:
+
+- `pgrep -af "run_training.py|scripts/train.py"`
+- `/workspace/openpi_experiments/amd_openpi_chip_approach_10k_bs16/logs/metrics.json`
+- tail of `/workspace/openpi_experiments/amd_openpi_chip_approach_10k_bs16/logs/train.log`
+- checkpoint directory under `/workspace/openpi/checkpoints/pi05_trossen_solo_chip_lora/amd_chip_approach_10k_bs16`
+
+Current state:
+
+- No active OpenPI training process was running.
+- `metrics.json` reports `status="stopped_by_user_after_validation"`.
+- Last logged step remains `2400`.
+- Last logged loss remains `0.0073`.
+- Last observed progress line was about `2.47k / 10k`.
+- No checkpoint files were present.
+
+Interpretation:
+
+The run did not continue in the background after interruption. The validated result is the same: the AMD MI300X OpenPI training pipeline works and trained with descending loss, but the run was stopped before the 10k-step save point.

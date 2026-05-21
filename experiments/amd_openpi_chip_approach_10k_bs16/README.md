@@ -70,6 +70,22 @@ The training pipeline was proven end to end on MI300X:
 
 No checkpoint was written for this stopped run. The active config had `save_interval=10000`, so OpenPI would only save at the 10k final step. Stopping at about 2.47k steps validated compatibility but did not preserve the in-memory train state.
 
+## Latest Progress Check
+
+Checked on `2026-05-21` after the run was interrupted:
+
+- No `run_training.py` or OpenPI `scripts/train.py` process is running in the AMD container.
+- Remote metrics still report `status="stopped_by_user_after_validation"`.
+- Last logged training step: `2400`.
+- Last observed progress line: about `2.47k / 10k`.
+- Last logged loss: `0.0073`.
+- Observed iteration speed: about `1.1 steps/sec`.
+- Checkpoint written: `false`.
+- Checkpoint directory exists but contains no checkpoint files:
+  `/workspace/openpi/checkpoints/pi05_trossen_solo_chip_lora/amd_chip_approach_10k_bs16`
+
+Conclusion: the OpenPI training run successfully demonstrated AMD MI300X compatibility and loss descent, but it was stopped before a checkpoint could be saved.
+
 ## Code Changes Needed
 
 The OpenPI chip-approach config needed a repack transform so the raw LeRobot keys match the Trossen solo policy transform:
