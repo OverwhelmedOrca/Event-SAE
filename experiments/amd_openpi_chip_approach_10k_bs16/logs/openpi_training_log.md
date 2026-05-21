@@ -1,6 +1,6 @@
 # OpenPI AMD MI300X Training Log
 
-## 2026-05-21 - Setup Started
+## Setup Started
 
 Objective: fine-tune OpenPI on the 100-episode Trossen solo-arm chip-approach dataset using the AMD Developer Cloud MI300X droplet.
 
@@ -143,7 +143,7 @@ Checkpoint result:
 - The checkpoint directory existed but contained no checkpoint files:
   `/workspace/openpi/checkpoints/pi05_trossen_solo_chip_lora/amd_chip_approach_10k_bs16`
 
-## 2026-05-21 - Progress Recheck
+## Progress Recheck
 
 The AMD droplet/container was checked again after the training process had been interrupted.
 
